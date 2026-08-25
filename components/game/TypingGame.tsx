@@ -3,6 +3,7 @@
 import { CreditsBar } from "@/components/game/CreditsBar";
 import { FallingCoin } from "@/components/game/FallingCoin";
 import { Lobby } from "@/components/game/Lobby";
+import { MeaningToast } from "@/components/game/MeaningToast";
 import { PromptCard } from "@/components/game/PromptCard";
 import { ResultScreen } from "@/components/game/ResultScreen";
 import { SiteFrame } from "@/components/game/SiteFrame";
@@ -13,6 +14,7 @@ import {
   getLevel,
   type LevelDef,
   type LevelId,
+  type PromptItem,
 } from "@/lib/levels";
 import {
   clearRun,
@@ -24,6 +26,7 @@ import {
 } from "@/lib/storage";
 import { matchTyped, scoreCatch } from "@/lib/typing";
 import { cn } from "@/lib/utils";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Screen = "lobby" | "countdown" | "playing" | "complete";
@@ -31,7 +34,7 @@ type QuestionStatus = "playing" | "caught" | "missed";
 
 type RunState = {
   level: LevelDef;
-  prompts: string[];
+  prompts: PromptItem[];
   index: number;
   credits: number;
   combo: number;
@@ -47,7 +50,8 @@ type RunState = {
 };
 
 const COUNTDOWN_SECONDS = 3;
-const RESOLVE_MS = 620;
+const MISS_RESOLVE_MS = 480;
+const MEANING_TOAST_MS = 1200;
 
 export function TypingGame() {
   const [save, setSave] = useState<SaveData>({
@@ -60,6 +64,15 @@ export function TypingGame() {
   const [run, setRun] = useState<RunState | null>(null);
   const [flash, setFlash] = useState<"up" | "zero" | null>(null);
   const [shake, setShake] = useState(false);
+  const [meaningToast, setMeaningToast] = useState<{
+    word: string;
+    meaning: string;
+    key: number;
+  } | null>(null);
+
+  const inPlay = screen === "playing" || screen === "countdown";
+  const viewportFit = useVisualViewport(inPlay);
+  const compact = inPlay && viewportFit.keyboardOpen;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const durationRef = useRef(0);
@@ -68,6 +81,7 @@ export function TypingGame() {
   const runRef = useRef<RunState | null>(null);
   const progressRef = useRef(0);
   const resolvingRef = useRef(false);
+  const completeTimerRef = useRef(0);
 
   useEffect(() => {
     const loaded = loadSave();
@@ -88,6 +102,45 @@ export function TypingGame() {
     setSave(next);
     writeSave(next);
   }, []);
+
+  const goToNextQuestion = useCallback(
+    (latest: RunState) => {
+      const nextIndex = latest.index + 1;
+      if (nextIndex >= latest.prompts.length) {
+        window.clearTimeout(completeTimerRef.current);
+        const delay = latest.status === "caught" ? MEANING_TOAST_MS : 0;
+        completeTimerRef.current = window.setTimeout(() => {
+          const stored = loadSave();
+          stored.levelScores[latest.level.id] = latest.credits;
+          stored.cleared[latest.level.id] = true;
+          persist(stored);
+          clearRun();
+          setScreen("complete");
+          resolvingRef.current = false;
+        }, delay);
+        return;
+      }
+      const nextPrompt = latest.prompts[nextIndex];
+      durationRef.current = fallDurationMs(nextPrompt, latest.level);
+      startedAtRef.current = performance.now();
+      progressRef.current = 0;
+      statusRef.current = "playing";
+      resolvingRef.current = false;
+      const advanced: RunState = {
+        ...latest,
+        index: nextIndex,
+        status: "playing",
+        progress: 0,
+        elapsedMs: 0,
+        typed: "",
+        clean: true,
+        lastGain: 0,
+      };
+      runRef.current = advanced;
+      setRun(advanced);
+    },
+    [persist]
+  );
 
   const beginLevel = useCallback((levelId: LevelId) => {
     const level = getLevel(levelId);
@@ -131,6 +184,8 @@ export function TypingGame() {
     clearRun();
     setFlash("zero");
     setRun(null);
+    setMeaningToast(null);
+    window.clearTimeout(completeTimerRef.current);
     setScreen("lobby");
     setAbandonedLevel(current.level.id);
   }, [persist]);
@@ -180,6 +235,12 @@ export function TypingGame() {
         });
         credits += lastGain;
         setFlash("up");
+        const item = current.prompts[current.index];
+        setMeaningToast({
+          word: item.word,
+          meaning: item.meaning,
+          key: Date.now(),
+        });
       } else {
         combo = 0;
         missed += 1;
@@ -200,51 +261,20 @@ export function TypingGame() {
       runRef.current = nextRun;
       setRun(nextRun);
 
+      if (kind === "caught") {
+        goToNextQuestion(nextRun);
+        return;
+      }
+
       window.setTimeout(() => {
         const latest = runRef.current;
         if (!latest) {
           return;
         }
-        const nextIndex = latest.index + 1;
-        if (nextIndex >= latest.prompts.length) {
-          const stored = loadSave();
-          stored.levelScores[latest.level.id] = latest.credits;
-          stored.cleared[latest.level.id] = true;
-          persist(stored);
-          clearRun();
-          setScreen("complete");
-          resolvingRef.current = false;
-          return;
-        }
-        const nextPrompt = latest.prompts[nextIndex];
-        durationRef.current = fallDurationMs(nextPrompt, latest.level);
-        startedAtRef.current = performance.now();
-        progressRef.current = 0;
-        statusRef.current = "playing";
-        resolvingRef.current = false;
-        setRun({
-          ...latest,
-          index: nextIndex,
-          status: "playing",
-          progress: 0,
-          elapsedMs: 0,
-          typed: "",
-          clean: true,
-          lastGain: 0,
-        });
-        runRef.current = {
-          ...latest,
-          index: nextIndex,
-          status: "playing",
-          progress: 0,
-          elapsedMs: 0,
-          typed: "",
-          clean: true,
-          lastGain: 0,
-        };
-      }, RESOLVE_MS);
+        goToNextQuestion(latest);
+      }, MISS_RESOLVE_MS);
     },
-    [persist]
+    [goToNextQuestion]
   );
 
   useEffect(() => {
@@ -306,7 +336,7 @@ export function TypingGame() {
 
   useEffect(() => {
     if (screen === "playing" && run?.status === "playing") {
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   }, [screen, run?.status, run?.index]);
 
@@ -318,7 +348,34 @@ export function TypingGame() {
     return () => window.clearTimeout(timer);
   }, [flash]);
 
-  const prompt = run?.prompts[run.index] ?? "";
+  useEffect(() => {
+    if (!meaningToast) {
+      return;
+    }
+    const timer = window.setTimeout(() => setMeaningToast(null), MEANING_TOAST_MS);
+    return () => window.clearTimeout(timer);
+  }, [meaningToast]);
+
+  useEffect(() => {
+    if (!inPlay) {
+      return;
+    }
+    const html = document.documentElement;
+    const { body } = document;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+    };
+  }, [inPlay]);
+
+  const prompt = run?.prompts[run.index]?.word ?? "";
   const match = useMemo(() => matchTyped(run?.typed ?? "", prompt), [run?.typed, prompt]);
 
   const onTyped = (value: string) => {
@@ -362,133 +419,209 @@ export function TypingGame() {
   const questionTotal = run.prompts.length;
   const progressPct = ((run.index + (run.status === "playing" ? 0 : 1)) / questionTotal) * 100;
   const urgent = screen === "playing" && run.status === "playing" && run.progress >= 0.72;
+  const finishOffset = compact ? "bottom-[3.1rem]" : "bottom-[4.75rem]";
+  const shellHeight = viewportFit.height || undefined;
 
   return (
-    <SiteFrame>
-      <div
-        className={cn(
-          "mx-auto flex min-h-[100vh] min-h-[100dvh] w-full max-w-3xl flex-col px-4 py-4 sm:py-6",
-          shake && "screen-shake"
-        )}
-        onClick={() => inputRef.current?.focus()}
-      >
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
-              Level {run.level.id} · {run.level.englishName}
-            </p>
-            <h1 className="font-display text-xl text-[#f7e7c2] sm:text-2xl">
-              {run.level.name}
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
-              第 {questionNo} / {questionTotal} 題
-            </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
-              onClick={abandonLevel}
-            >
-              放棄本關
-            </Button>
-          </div>
-        </div>
-
-        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-black/40">
+    <div
+      className="gameplay-shell bg-[#0a0d14]"
+      style={{
+        position: "fixed",
+        top: viewportFit.height ? viewportFit.offsetTop : 0,
+        left: viewportFit.height ? viewportFit.offsetLeft : 0,
+        width: viewportFit.width ? viewportFit.width : "100%",
+        height: shellHeight ? `${shellHeight}px` : "100dvh",
+        paddingBottom: compact ? 0 : "env(safe-area-inset-bottom)",
+      }}
+    >
+      <SiteFrame fill className="h-full">
+        <div
+          className={cn(
+            "mx-auto flex h-full w-full max-w-3xl flex-col px-4",
+            compact ? "py-1.5" : "py-4 sm:py-6",
+            shake && "screen-shake"
+          )}
+          onClick={() => inputRef.current?.focus({ preventScroll: true })}
+        >
           <div
-            className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
-            style={{ width: `${Math.min(100, progressPct)}%` }}
-          />
-        </div>
+            className={cn(
+              "flex items-center justify-between gap-3",
+              compact ? "mb-1.5" : "mb-3"
+            )}
+          >
+            <div className="min-w-0">
+              <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
+                Level {run.level.id} · {run.level.englishName}
+              </p>
+              <h1
+                className={cn(
+                  "font-display text-[#f7e7c2]",
+                  compact ? "text-base" : "text-xl sm:text-2xl"
+                )}
+              >
+                {run.level.name}
+              </h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
+                第 {questionNo} / {questionTotal} 題
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  abandonLevel();
+                }}
+              >
+                放棄本關
+              </Button>
+            </div>
+          </div>
 
-        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[1.6rem] border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)]">
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.14),transparent)]" />
-          <div className="pointer-events-none lane-glow absolute inset-y-0 left-1/2 w-28 -translate-x-1/2 sm:w-36" />
+          <div
+            className={cn(
+              "overflow-hidden rounded-full bg-black/40",
+              compact ? "mb-1.5 h-1" : "mb-3 h-1.5"
+            )}
+          >
+            <div
+              className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
+              style={{ width: `${Math.min(100, progressPct)}%` }}
+            />
+          </div>
 
-          <div className="relative h-full min-h-[22rem] sm:min-h-[30rem]">
-            <div className="absolute inset-x-0 top-0 bottom-[4.75rem]">
-              {screen === "playing" ? (
-                <FallingCoin
-                  progress={run.progress}
-                  spinning={run.status === "playing"}
-                  caught={run.status === "caught"}
-                  missed={run.status === "missed"}
-                  elapsedMs={run.elapsedMs}
+          <div className="relative min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)] sm:rounded-[1.6rem]">
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.14),transparent)]" />
+            <div className="pointer-events-none lane-glow absolute inset-y-0 left-1/2 w-24 -translate-x-1/2 sm:w-36" />
+
+            <div className="relative h-full min-h-0">
+              <div className={cn("absolute inset-x-0 top-0", finishOffset)}>
+                {screen === "playing" ? (
+                  <FallingCoin
+                    progress={run.progress}
+                    spinning={run.status === "playing"}
+                    caught={run.status === "caught"}
+                    missed={run.status === "missed"}
+                    elapsedMs={run.elapsedMs}
+                    compact={compact}
+                  />
+                ) : null}
+
+                <div className="absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
+                  {screen === "countdown" ? (
+                    <div className="text-center">
+                      <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
+                        即將開始 · 無法暫停
+                      </p>
+                      <p
+                        className={cn(
+                          "font-display text-[#ffe9a8]",
+                          compact ? "mt-1 text-5xl" : "mt-2 text-7xl"
+                        )}
+                      >
+                        {count > 0 ? count : "GO"}
+                      </p>
+                      {!compact ? (
+                        <p className="mt-3 text-sm text-[#cbb892]">倒數結束後，直接打出中央的英文</p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <PromptCard
+                      prompt={prompt}
+                      typed={run.typed}
+                      status={run.status}
+                      compact={compact}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {meaningToast ? (
+                <MeaningToast
+                  word={meaningToast.word}
+                  meaning={meaningToast.meaning}
+                  toastKey={meaningToast.key}
                 />
               ) : null}
 
-              <div className="absolute inset-0 z-30 flex items-center justify-center px-4">
-                {screen === "countdown" ? (
-                  <div className="text-center">
-                    <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
-                      即將開始 · 無法暫停
-                    </p>
-                    <p className="font-display mt-2 text-7xl text-[#ffe9a8]">
-                      {count > 0 ? count : "GO"}
-                    </p>
-                    <p className="mt-3 text-sm text-[#cbb892]">倒數結束後，直接打出中央的英文</p>
+              <div className={cn("absolute inset-x-0 z-40", finishOffset)}>
+                <div className={cn("relative", compact ? "mx-4" : "mx-6")}>
+                  <div
+                    className={cn(
+                      "h-[3px] rounded-full bg-[linear-gradient(90deg,transparent,#f0d48a,transparent)] shadow-[0_0_16px_rgba(240,212,138,0.55)]",
+                      urgent && "finish-urgent bg-[linear-gradient(90deg,transparent,#ff8a6a,transparent)]"
+                    )}
+                  />
+                  <div
+                    className={cn(
+                      "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ead08a]/50 bg-[#1a140c] px-3 py-0.5 text-[10px] tracking-[0.32em] text-[#ffe9a8] uppercase",
+                      urgent && "border-rose-300/60 text-rose-100"
+                    )}
+                  >
+                    終點線
                   </div>
-                ) : (
-                  <PromptCard prompt={prompt} typed={run.typed} status={run.status} />
-                )}
-              </div>
-            </div>
-
-            <div className="absolute inset-x-0 bottom-[4.75rem] z-40">
-              <div className="relative mx-6">
-                <div
-                  className={cn(
-                    "h-[3px] rounded-full bg-[linear-gradient(90deg,transparent,#f0d48a,transparent)] shadow-[0_0_16px_rgba(240,212,138,0.55)]",
-                    urgent && "finish-urgent bg-[linear-gradient(90deg,transparent,#ff8a6a,transparent)]"
-                  )}
-                />
-                <div
-                  className={cn(
-                    "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ead08a]/50 bg-[#1a140c] px-3 py-0.5 text-[10px] tracking-[0.32em] text-[#ffe9a8] uppercase",
-                    urgent && "border-rose-300/60 text-rose-100"
-                  )}
-                >
-                  終點線
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="mt-4 space-y-3">
-          <input
-            ref={inputRef}
-            value={run.typed}
-            type="text"
-            inputMode="text"
-            lang="en"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            disabled={screen !== "playing" || run.status !== "playing"}
-            onChange={(event) => onTyped(event.target.value)}
-            onPaste={(event) => event.preventDefault()}
-            placeholder={screen === "playing" ? "在終點線前打完英文…" : "倒數結束後開始輸入"}
-            aria-label="英文輸入"
-            className={cn(
-              "h-14 w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-lg text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
-              match.hasError && "border-rose-400/60"
-            )}
-          />
-          <CreditsBar
-            credits={run.credits}
-            combo={run.combo}
-            flash={flash}
-            lastGain={run.lastGain}
-          />
-          <p className="text-center text-[11px] tracking-wide text-[#9e8d6c]">
-            放棄本關會立刻把這一關的分數歸零，且遊戲開始後沒有暫停。
-          </p>
+          <div className={cn("shrink-0", compact ? "mt-1.5 space-y-1" : "mt-4 space-y-3")}>
+            {compact ? (
+              <CreditsBar
+                credits={run.credits}
+                combo={run.combo}
+                flash={flash}
+                lastGain={run.lastGain}
+                compact
+              />
+            ) : null}
+            <form
+              autoComplete="off"
+              onSubmit={(event) => event.preventDefault()}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <input
+                ref={inputRef}
+                value={run.typed}
+                type="text"
+                name="type-answer"
+                inputMode="text"
+                lang="en"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                disabled={screen !== "playing" || run.status !== "playing"}
+                onChange={(event) => onTyped(event.target.value)}
+                onPaste={(event) => event.preventDefault()}
+                onFocus={() => window.scrollTo(0, 0)}
+                placeholder={screen === "playing" ? "在終點線前打完英文…" : "倒數結束後開始輸入"}
+                aria-label="英文輸入"
+                className={cn(
+                  "game-type-input w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
+                  compact ? "h-11" : "h-12 sm:h-14",
+                  match.hasError && "border-rose-400/60"
+                )}
+              />
+            </form>
+            {!compact ? (
+              <CreditsBar
+                credits={run.credits}
+                combo={run.combo}
+                flash={flash}
+                lastGain={run.lastGain}
+              />
+            ) : null}
+            {!compact && screen !== "playing" ? (
+              <p className="text-center text-[11px] tracking-wide text-[#9e8d6c]">
+                放棄本關會立刻把這一關的分數歸零，且遊戲開始後沒有暫停。
+              </p>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </SiteFrame>
+      </SiteFrame>
+    </div>
   );
 }

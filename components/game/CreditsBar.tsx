@@ -8,9 +8,48 @@ type CreditsBarProps = {
   combo: number;
   flash?: "up" | "zero" | null;
   lastGain?: number;
+  compact?: boolean;
 };
 
-export function CreditsBar({ credits, combo, flash, lastGain = 0 }: CreditsBarProps) {
+export function CreditsBar({
+  credits,
+  combo,
+  flash,
+  lastGain = 0,
+  compact = false,
+}: CreditsBarProps) {
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 px-0.5 py-0.5",
+          flash === "up" && "credits-up",
+          flash === "zero" && "credits-zero"
+        )}
+      >
+        <p className="flex items-center gap-1.5 text-[13px] leading-none">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={asset(COIN_FRONT)} alt="" className="h-5 w-5 object-contain" />
+          <span className="tracking-[0.18em] text-[#d7b56a] uppercase">Credits</span>
+          <span className="font-mono font-semibold text-[#ffe9a8] tabular-nums">
+            {credits.toLocaleString("en-US")}
+          </span>
+          {flash === "up" && lastGain > 0 ? (
+            <span className="font-mono text-[#ffe9a8]">+{lastGain}</span>
+          ) : null}
+        </p>
+        <p
+          className={cn(
+            "font-mono text-[13px] font-semibold tabular-nums",
+            combo > 1 ? "text-[#ffe08a]" : "text-[#8b7a5c]"
+          )}
+        >
+          Combo x{combo}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
