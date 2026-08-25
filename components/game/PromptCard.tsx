@@ -15,18 +15,18 @@ export function PromptCard({ prompt, typed, status }: PromptCardProps) {
   return (
     <div
       className={cn(
-        "relative z-30 mx-auto w-[min(100%,40rem)] rounded-3xl border px-5 py-6 text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md sm:px-8 sm:py-8",
+        "relative z-30 mx-auto w-[min(100%,42rem)] rounded-3xl border px-5 py-6 text-center shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md sm:px-8 sm:py-8",
         status === "caught" && "border-emerald-300/50 bg-emerald-950/40",
         status === "missed" && "border-rose-400/40 bg-rose-950/35",
         status !== "caught" &&
           status !== "missed" &&
-          "border-[rgba(232,196,110,0.28)] bg-[rgba(12,16,28,0.78)]"
+          "border-[rgba(232,196,110,0.28)] bg-[rgba(12,16,28,0.82)]"
       )}
     >
       <p className="mb-3 text-[11px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
-        Type this
+        {status === "caught" ? "Caught" : status === "missed" ? "Missed" : "Type this"}
       </p>
-      <p className="font-mono text-[clamp(1.35rem,4.6vw,2.35rem)] leading-tight font-semibold tracking-wide break-words text-[#f6ead2]">
+      <p className="font-mono text-[clamp(1.35rem,4.6vw,2.45rem)] leading-tight font-semibold tracking-wide break-words text-[#f6ead2]">
         {prompt.split("").map((char, index) => {
           const reached = index < typed.length;
           const ok = index < match.correctLen;
@@ -54,6 +54,9 @@ export function PromptCard({ prompt, typed, status }: PromptCardProps) {
         <p className="mt-3 text-sm font-medium tracking-widest text-rose-300">
           金幣碰到終點線
         </p>
+      )}
+      {status === "playing" && match.hasError && (
+        <p className="mt-3 text-sm text-rose-300/90">打錯了，請修正後繼續</p>
       )}
     </div>
   );

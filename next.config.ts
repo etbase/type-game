@@ -1,6 +1,10 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import { getBasePath } from "./lib/base-path";
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, "") ?? "";
+const dir = path.dirname(fileURLToPath(import.meta.url));
+const basePath = getBasePath();
 
 const nextConfig: NextConfig = {
   output: "export",
@@ -8,6 +12,7 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   basePath: basePath || undefined,
   assetPrefix: basePath || undefined,
+  outputFileTracingRoot: dir,
 };
 
 export default nextConfig;

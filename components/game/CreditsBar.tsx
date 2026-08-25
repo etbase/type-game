@@ -7,23 +7,29 @@ type CreditsBarProps = {
   credits: number;
   combo: number;
   flash?: "up" | "zero" | null;
+  lastGain?: number;
 };
 
-export function CreditsBar({ credits, combo, flash }: CreditsBarProps) {
+export function CreditsBar({ credits, combo, flash, lastGain = 0 }: CreditsBarProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 rounded-2xl border border-[rgba(232,196,110,0.28)] bg-[linear-gradient(180deg,rgba(36,28,14,0.92),rgba(14,12,10,0.94))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,236,180,0.12)]",
+        "relative flex items-center justify-between gap-3 rounded-2xl border border-[rgba(232,196,110,0.28)] bg-[linear-gradient(180deg,rgba(36,28,14,0.92),rgba(14,12,10,0.94))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,236,180,0.12)]",
         flash === "up" && "credits-up",
         flash === "zero" && "credits-zero"
       )}
     >
+      {flash === "up" && lastGain > 0 ? (
+        <span className="gain-pop pointer-events-none absolute -top-2 right-28 font-mono text-sm font-semibold text-[#ffe9a8]">
+          +{lastGain}
+        </span>
+      ) : null}
       <div className="flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={asset(COIN_FRONT)}
           alt=""
-          className="h-10 w-10 object-contain drop-shadow-[0_0_12px_rgba(232,196,110,0.45)]"
+          className="h-11 w-11 object-contain drop-shadow-[0_0_12px_rgba(232,196,110,0.45)]"
         />
         <div>
           <p className="text-[10px] tracking-[0.42em] text-[#d7b56a] uppercase">

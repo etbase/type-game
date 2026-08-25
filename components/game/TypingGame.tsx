@@ -5,6 +5,7 @@ import { FallingCoin } from "@/components/game/FallingCoin";
 import { Lobby } from "@/components/game/Lobby";
 import { PromptCard } from "@/components/game/PromptCard";
 import { ResultScreen } from "@/components/game/ResultScreen";
+import { SiteFrame } from "@/components/game/SiteFrame";
 import { Button } from "@/components/ui/button";
 import {
   dealPrompts,
@@ -42,6 +43,7 @@ type RunState = {
   elapsedMs: number;
   typed: string;
   clean: boolean;
+  lastGain: number;
 };
 
 const COUNTDOWN_SECONDS = 3;
@@ -104,6 +106,7 @@ export function TypingGame() {
       elapsedMs: 0,
       typed: "",
       clean: true,
+      lastGain: 0,
     };
     durationRef.current = fallDurationMs(prompts[0], level);
     startedAtRef.current = 0;
@@ -162,18 +165,20 @@ export function TypingGame() {
       let bestCombo = current.bestCombo;
       let caught = current.caught;
       let missed = current.missed;
+      let lastGain = 0;
 
       if (kind === "caught") {
         combo += 1;
         bestCombo = Math.max(bestCombo, combo);
         caught += 1;
         const remaining = Math.max(0, 1 - progressRef.current);
-        credits += scoreCatch({
+        lastGain = scoreCatch({
           levelId: current.level.id,
           remaining,
           combo,
           clean: current.clean,
         });
+        credits += lastGain;
         setFlash("up");
       } else {
         combo = 0;
@@ -190,6 +195,7 @@ export function TypingGame() {
         caught,
         missed,
         status: kind,
+        lastGain,
       };
       runRef.current = nextRun;
       setRun(nextRun);
@@ -224,6 +230,7 @@ export function TypingGame() {
           elapsedMs: 0,
           typed: "",
           clean: true,
+          lastGain: 0,
         });
         runRef.current = {
           ...latest,
@@ -233,6 +240,7 @@ export function TypingGame() {
           elapsedMs: 0,
           typed: "",
           clean: true,
+          lastGain: 0,
         };
       }, RESOLVE_MS);
     },
@@ -350,102 +358,137 @@ export function TypingGame() {
     return null;
   }
 
+  const questionNo = Math.min(run.index + 1, run.prompts.length);
+  const questionTotal = run.prompts.length;
+  const progressPct = ((run.index + (run.status === "playing" ? 0 : 1)) / questionTotal) * 100;
+  const urgent = screen === "playing" && run.status === "playing" && run.progress >= 0.72;
+
   return (
-    <div
-      className={cn(
-        "mx-auto flex min-h-[100dvh] w-full max-w-3xl flex-col px-4 py-4 sm:py-6",
-        shake && "screen-shake"
-      )}
-    >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
-            Level {run.level.id} · {run.level.englishName}
-          </p>
-          <h1 className="font-display text-xl text-[#f7e7c2] sm:text-2xl">
-            {run.level.name}
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
-            {Math.min(run.index + 1, run.prompts.length)}/{run.prompts.length}
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
-            onClick={abandonLevel}
-          >
-            放棄本關
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[1.6rem] border border-[rgba(232,196,110,0.2)] bg-[linear-gradient(180deg,rgba(18,22,36,0.92),rgba(8,10,16,0.96))]">
-        <div className="pointer-events-none absolute inset-x-8 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.12),transparent)]" />
-
-        <div className="relative h-full min-h-[22rem] sm:min-h-[28rem]">
-          <div className="absolute inset-x-0 top-0 bottom-[4.75rem]">
-            {screen === "playing" ? (
-              <FallingCoin
-                progress={run.progress}
-                spinning={run.status === "playing"}
-                caught={run.status === "caught"}
-                missed={run.status === "missed"}
-                elapsedMs={run.elapsedMs}
-              />
-            ) : null}
-
-            <div className="absolute inset-0 z-30 flex items-center justify-center px-4">
-              {screen === "countdown" ? (
-                <div className="text-center">
-                  <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
-                    即將開始 · 無法暫停
-                  </p>
-                  <p className="font-display mt-2 text-7xl text-[#ffe9a8]">
-                    {count > 0 ? count : "GO"}
-                  </p>
-                </div>
-              ) : (
-                <PromptCard prompt={prompt} typed={run.typed} status={run.status} />
-              )}
-            </div>
+    <SiteFrame>
+      <div
+        className={cn(
+          "mx-auto flex min-h-[100vh] min-h-[100dvh] w-full max-w-3xl flex-col px-4 py-4 sm:py-6",
+          shake && "screen-shake"
+        )}
+        onClick={() => inputRef.current?.focus()}
+      >
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
+              Level {run.level.id} · {run.level.englishName}
+            </p>
+            <h1 className="font-display text-xl text-[#f7e7c2] sm:text-2xl">
+              {run.level.name}
+            </h1>
           </div>
+          <div className="flex items-center gap-3">
+            <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
+              第 {questionNo} / {questionTotal} 題
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
+              onClick={abandonLevel}
+            >
+              放棄本關
+            </Button>
+          </div>
+        </div>
 
-          <div className="absolute inset-x-0 bottom-[4.75rem] z-40">
-            <div className="relative mx-6">
-              <div className="h-[3px] rounded-full bg-[linear-gradient(90deg,transparent,#f0d48a,transparent)] shadow-[0_0_16px_rgba(240,212,138,0.55)]" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ead08a]/50 bg-[#1a140c] px-3 py-0.5 text-[10px] tracking-[0.32em] text-[#ffe9a8] uppercase">
-                終點線
+        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-black/40">
+          <div
+            className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
+            style={{ width: `${Math.min(100, progressPct)}%` }}
+          />
+        </div>
+
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[1.6rem] border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)]">
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.14),transparent)]" />
+          <div className="pointer-events-none lane-glow absolute inset-y-0 left-1/2 w-28 -translate-x-1/2 sm:w-36" />
+
+          <div className="relative h-full min-h-[22rem] sm:min-h-[30rem]">
+            <div className="absolute inset-x-0 top-0 bottom-[4.75rem]">
+              {screen === "playing" ? (
+                <FallingCoin
+                  progress={run.progress}
+                  spinning={run.status === "playing"}
+                  caught={run.status === "caught"}
+                  missed={run.status === "missed"}
+                  elapsedMs={run.elapsedMs}
+                />
+              ) : null}
+
+              <div className="absolute inset-0 z-30 flex items-center justify-center px-4">
+                {screen === "countdown" ? (
+                  <div className="text-center">
+                    <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
+                      即將開始 · 無法暫停
+                    </p>
+                    <p className="font-display mt-2 text-7xl text-[#ffe9a8]">
+                      {count > 0 ? count : "GO"}
+                    </p>
+                    <p className="mt-3 text-sm text-[#cbb892]">倒數結束後，直接打出中央的英文</p>
+                  </div>
+                ) : (
+                  <PromptCard prompt={prompt} typed={run.typed} status={run.status} />
+                )}
+              </div>
+            </div>
+
+            <div className="absolute inset-x-0 bottom-[4.75rem] z-40">
+              <div className="relative mx-6">
+                <div
+                  className={cn(
+                    "h-[3px] rounded-full bg-[linear-gradient(90deg,transparent,#f0d48a,transparent)] shadow-[0_0_16px_rgba(240,212,138,0.55)]",
+                    urgent && "finish-urgent bg-[linear-gradient(90deg,transparent,#ff8a6a,transparent)]"
+                  )}
+                />
+                <div
+                  className={cn(
+                    "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ead08a]/50 bg-[#1a140c] px-3 py-0.5 text-[10px] tracking-[0.32em] text-[#ffe9a8] uppercase",
+                    urgent && "border-rose-300/60 text-rose-100"
+                  )}
+                >
+                  終點線
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-4 space-y-3">
-        <input
-          ref={inputRef}
-          value={run.typed}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          disabled={screen !== "playing" || run.status !== "playing"}
-          onChange={(event) => onTyped(event.target.value)}
-          onPaste={(event) => event.preventDefault()}
-          placeholder={screen === "playing" ? "在終點線前打完英文…" : "倒數結束後開始輸入"}
-          aria-label="英文輸入"
-          className={cn(
-            "h-14 w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-lg text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
-            match.hasError && "border-rose-400/60"
-          )}
-        />
-        <CreditsBar credits={run.credits} combo={run.combo} flash={flash} />
-        <p className="text-center text-[11px] tracking-wide text-[#9e8d6c]">
-          放棄本關會立刻把這一關的分數歸零，且遊戲開始後沒有暫停。
-        </p>
+        <div className="mt-4 space-y-3">
+          <input
+            ref={inputRef}
+            value={run.typed}
+            type="text"
+            inputMode="text"
+            lang="en"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            disabled={screen !== "playing" || run.status !== "playing"}
+            onChange={(event) => onTyped(event.target.value)}
+            onPaste={(event) => event.preventDefault()}
+            placeholder={screen === "playing" ? "在終點線前打完英文…" : "倒數結束後開始輸入"}
+            aria-label="英文輸入"
+            className={cn(
+              "h-14 w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-lg text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
+              match.hasError && "border-rose-400/60"
+            )}
+          />
+          <CreditsBar
+            credits={run.credits}
+            combo={run.combo}
+            flash={flash}
+            lastGain={run.lastGain}
+          />
+          <p className="text-center text-[11px] tracking-wide text-[#9e8d6c]">
+            放棄本關會立刻把這一關的分數歸零，且遊戲開始後沒有暫停。
+          </p>
+        </div>
       </div>
-    </div>
+    </SiteFrame>
   );
 }

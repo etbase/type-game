@@ -126,12 +126,16 @@
     @apply font-sans;
   }
   body {
+    min-height: 100vh;
     min-height: 100dvh;
     color: var(--foreground);
-    background:
-      radial-gradient(1200px 500px at 50% -10%, rgba(232, 196, 110, 0.16), transparent 55%),
-      radial-gradient(900px 420px at 100% 100%, rgba(80, 110, 170, 0.12), transparent 50%),
-      linear-gradient(180deg, #10151f 0%, #0a0d14 42%, #07080c 100%);
+    background: #0a0d14;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  a {
+    touch-action: manipulation;
   }
 }
 
@@ -209,5 +213,76 @@
   100% {
     transform: scale(1);
     filter: brightness(1);
+  }
+}
+
+.gold-dust {
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(255, 228, 160, 0.16) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 38%, rgba(255, 214, 120, 0.12) 0 1px, transparent 2px),
+    radial-gradient(circle at 40% 70%, rgba(232, 196, 110, 0.1) 0 1px, transparent 2px),
+    radial-gradient(circle at 88% 82%, rgba(255, 236, 190, 0.12) 0 1px, transparent 2px);
+  background-size: 280px 280px, 340px 340px, 260px 260px, 300px 300px;
+  animation: dust-drift 18s linear infinite;
+}
+
+.finish-urgent {
+  animation: finish-urgent 0.7s ease-in-out infinite;
+}
+
+.gain-pop {
+  animation: gain-pop 0.7s ease;
+}
+
+.lane-glow {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 214, 120, 0.08),
+    rgba(255, 214, 120, 0.02) 42%,
+    rgba(255, 214, 120, 0.16)
+  );
+}
+
+@keyframes dust-drift {
+  from {
+    background-position: 0 0, 40px 20px, 10px 80px, 90px 0;
+  }
+  to {
+    background-position: 0 -280px, 40px -320px, 10px -180px, 90px -300px;
+  }
+}
+
+@keyframes finish-urgent {
+  0%,
+  100% {
+    box-shadow: 0 0 16px rgba(240, 212, 138, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(255, 120, 90, 0.55);
+  }
+}
+
+@keyframes gain-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gold-dust,
+  .finish-urgent,
+  .gain-pop,
+  .screen-shake,
+  .credits-up,
+  .coin-burst {
+    animation: none;
   }
 }

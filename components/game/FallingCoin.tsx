@@ -38,11 +38,13 @@ export function FallingCoin({
       }}
     >
       <div className={cn("relative", caught && "coin-burst")}>
-        <div className="absolute inset-[-18%] rounded-full bg-[radial-gradient(circle,rgba(255,214,120,0.45),transparent_68%)] blur-md" />
+        <div className="absolute inset-[-22%] rounded-full bg-[radial-gradient(circle,rgba(255,214,120,0.5),transparent_68%)] blur-md" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt="金幣"
+          width={110}
+          height={110}
           className="relative h-[92px] w-auto select-none drop-shadow-[0_18px_24px_rgba(0,0,0,0.55)] sm:h-[110px]"
           draggable={false}
         />
