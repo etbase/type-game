@@ -33,16 +33,15 @@ export function challengeSpawnGapMs(resolvedRatio: number) {
 
 export function challengeLaneCount(narrow: boolean, split = false) {
   if (split) {
-    return 1;
+    return 2;
   }
   return narrow ? 3 : 4;
 }
 
-export function laneCenter(lane: number, laneCount: number) {
+export function laneCenter(lane: number, laneCount: number, pad = 16) {
   if (laneCount <= 1) {
     return 50;
   }
-  const pad = 16;
   const span = 100 - pad * 2;
   const step = span / (laneCount - 1);
   return pad + step * lane;
@@ -99,11 +98,14 @@ export function makeLiveCoin(opts: {
   const laneCount = challengeLaneCount(opts.narrow, opts.split);
   const lane = pickLane(opts.live, laneCount);
   const jitter = opts.split ? 0 : (Math.random() - 0.5) * 7;
+  const x = opts.split
+    ? Math.min(62, Math.max(38, laneCenter(lane, laneCount, 38)))
+    : Math.min(88, Math.max(12, laneCenter(lane, laneCount) + jitter));
   return {
     id: opts.id,
     prompt: opts.prompt,
     lane,
-    x: Math.min(88, Math.max(12, laneCenter(lane, laneCount) + jitter)),
+    x,
     born: opts.now,
     duration: durationWithVariance(fallDurationMs(opts.prompt, opts.level)),
     status: "falling",

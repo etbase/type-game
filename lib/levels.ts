@@ -12,6 +12,8 @@ export type LevelDef = {
   name: string;
   englishName: string;
   blurb: string;
+  kind: string;
+  pace: string;
   mode: LevelMode;
   prompts: PromptItem[];
   questions: number;
@@ -33,14 +35,16 @@ export const LEVELS: LevelDef[] = [
     id: 1,
     name: "入門",
     englishName: "Beginner",
-    blurb: "短單字，金幣落得慢。",
+    blurb: "短單字，容錯時間較長。",
+    kind: "短單字",
+    pace: "慢 · 容錯長",
     mode: "classic",
     questions: QUESTIONS_PER_LEVEL,
-    charMs: 220,
+    charMs: 280,
     wordMs: 0,
     phraseBonusMs: 0,
-    minMs: 5600,
-    maxMs: 9800,
+    minMs: 6800,
+    maxMs: 12000,
     prompts: items(
       ["cat", "貓"],
       ["dog", "狗"],
@@ -74,14 +78,16 @@ export const LEVELS: LevelDef[] = [
     id: 2,
     name: "進階",
     englishName: "Advanced",
-    blurb: "較長單字，節奏加快。",
+    blurb: "長單字，節奏快，Combo 加分更高。",
+    kind: "長單字",
+    pace: "快 · Combo 高",
     mode: "classic",
     questions: QUESTIONS_PER_LEVEL,
-    charMs: 280,
+    charMs: 250,
     wordMs: 0,
     phraseBonusMs: 0,
-    minMs: 5400,
-    maxMs: 11200,
+    minMs: 4600,
+    maxMs: 9800,
     prompts: items(
       ["because", "因為"],
       ["together", "一起"],
@@ -115,14 +121,16 @@ export const LEVELS: LevelDef[] = [
     id: 3,
     name: "片語",
     englishName: "Phrases",
-    blurb: "生活片語，空白鍵也算。",
+    blurb: "生活片語，空白鍵必須打對。掉落時間依長度調整。",
+    kind: "片語",
+    pace: "依長度調整",
     mode: "classic",
     questions: QUESTIONS_PER_LEVEL,
-    charMs: 200,
-    wordMs: 780,
-    phraseBonusMs: 650,
-    minMs: 7400,
-    maxMs: 16800,
+    charMs: 230,
+    wordMs: 920,
+    phraseBonusMs: 720,
+    minMs: 8200,
+    maxMs: 18800,
     prompts: items(
       ["good morning", "早安"],
       ["thank you", "謝謝"],
@@ -157,6 +165,8 @@ export const LEVELS: LevelDef[] = [
     name: "挑戰",
     englishName: "Challenge",
     blurb: "多顆金幣同時落下。打出任一顆上面的英文就能消滅它。",
+    kind: "混合多幣",
+    pace: "多軌同時",
     mode: "challenge",
     questions: QUESTIONS_PER_LEVEL,
     charMs: 210,

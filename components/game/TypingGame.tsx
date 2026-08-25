@@ -18,10 +18,14 @@ import {
   type PromptItem,
 } from "@/lib/levels";
 import {
+  applyCompleteScore,
+  clearIncomplete,
   clearRun,
   loadSave,
   markRun,
-  takeAbandonedRun,
+  snapshotFromRun,
+  readIncomplete,
+  writeIncomplete,
   writeSave,
   type SaveData,
 } from "@/lib/storage";
@@ -60,11 +64,12 @@ export function TypingGame() {
     cleared: { 1: false, 2: false, 3: false, 4: false },
   });
   const [screen, setScreen] = useState<Screen>("lobby");
-  const [abandonedLevel, setAbandonedLevel] = useState<LevelId | null>(null);
   const [count, setCount] = useState(COUNTDOWN_SECONDS);
   const [run, setRun] = useState<RunState | null>(null);
   const [flash, setFlash] = useState<"up" | "zero" | null>(null);
   const [shake, setShake] = useState(false);
+  const [incomplete, setIncomplete] = useState(false);
+  const [newRecord, setNewRecord] = useState(false);
   const [meaningToast, setMeaningToast] = useState<{
     word: string;
     meaning: string;
@@ -74,9 +79,7 @@ export function TypingGame() {
 
   const inPlay = screen === "playing" || screen === "countdown";
   const viewportFit = useVisualViewport(inPlay);
-  const [inputFocused, setInputFocused] = useState(false);
-  const splitLayout =
-    viewportFit.isPhone && screen === "playing" && (viewportFit.keyboardOpen || inputFocused);
+  const splitLayout = viewportFit.isPhone && inPlay;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const durationRef = useRef(0);
@@ -89,13 +92,31 @@ export function TypingGame() {
 
   useEffect(() => {
     const loaded = loadSave();
-    const leftover = takeAbandonedRun();
-    if (leftover) {
-      loaded.levelScores[leftover] = 0;
-      writeSave(loaded);
-      setAbandonedLevel(leftover);
-    }
     setSave(loaded);
+    const leftover = readIncomplete();
+    if (!leftover) {
+      return;
+    }
+    const level = getLevel(leftover.levelId);
+    setRun({
+      level,
+      prompts: Array.from({ length: leftover.total }, () => ({ word: "", meaning: "" })),
+      index: leftover.caught + leftover.missed,
+      credits: leftover.credits,
+      combo: 0,
+      bestCombo: leftover.bestCombo,
+      caught: leftover.caught,
+      missed: leftover.missed,
+      status: "missed",
+      progress: 1,
+      elapsedMs: 0,
+      typed: "",
+      clean: true,
+      lastGain: 0,
+    });
+    setIncomplete(true);
+    setNewRecord(false);
+    setScreen("complete");
   }, []);
 
   useEffect(() => {
@@ -115,10 +136,12 @@ export function TypingGame() {
         const delay = latest.status === "caught" ? MEANING_TOAST_MS : 0;
         completeTimerRef.current = window.setTimeout(() => {
           const stored = loadSave();
-          stored.levelScores[latest.level.id] = latest.credits;
-          stored.cleared[latest.level.id] = true;
-          persist(stored);
+          const applied = applyCompleteScore(stored, latest.level.id, latest.credits);
+          persist(applied.save);
           clearRun();
+          clearIncomplete();
+          setNewRecord(applied.newRecord);
+          setIncomplete(false);
           setScreen("complete");
           resolvingRef.current = false;
         }, delay);
@@ -170,10 +193,12 @@ export function TypingGame() {
     progressRef.current = 0;
     statusRef.current = "playing";
     resolvingRef.current = false;
+    clearIncomplete();
     setRun(nextRun);
     setCount(COUNTDOWN_SECONDS);
     setScreen("countdown");
-    setAbandonedLevel(null);
+    setIncomplete(false);
+    setNewRecord(false);
     markRun(levelId);
     setChallengeUrgent(false);
   }, []);
@@ -183,17 +208,15 @@ export function TypingGame() {
     if (!current) {
       return;
     }
-    const latest = loadSave();
-    latest.levelScores[current.level.id] = 0;
-    persist(latest);
+    writeIncomplete(snapshotFromRun(current));
     clearRun();
-    setFlash("zero");
-    setRun(null);
+    setFlash(null);
     setMeaningToast(null);
     window.clearTimeout(completeTimerRef.current);
-    setScreen("lobby");
-    setAbandonedLevel(current.level.id);
-  }, [persist]);
+    setIncomplete(true);
+    setNewRecord(false);
+    setScreen("complete");
+  }, []);
 
   useEffect(() => {
     if (screen !== "countdown") {
@@ -326,6 +349,18 @@ export function TypingGame() {
     };
     runRef.current = next;
     setRun(next);
+    setFlash("zero");
+  }, []);
+
+  const onChallengeComboBreak = useCallback(() => {
+    const current = runRef.current;
+    if (!current || current.combo === 0) {
+      return;
+    }
+    const next: RunState = { ...current, combo: 0 };
+    runRef.current = next;
+    setRun(next);
+    setFlash("zero");
   }, []);
 
   const onChallengeComplete = useCallback(() => {
@@ -336,10 +371,12 @@ export function TypingGame() {
     window.clearTimeout(completeTimerRef.current);
     completeTimerRef.current = window.setTimeout(() => {
       const stored = loadSave();
-      stored.levelScores[latest.level.id] = latest.credits;
-      stored.cleared[latest.level.id] = true;
-      persist(stored);
+      const applied = applyCompleteScore(stored, latest.level.id, latest.credits);
+      persist(applied.save);
       clearRun();
+      clearIncomplete();
+      setNewRecord(applied.newRecord);
+      setIncomplete(false);
       setScreen("complete");
     }, MEANING_TOAST_MS);
   }, [persist]);
@@ -360,15 +397,20 @@ export function TypingGame() {
       const duration = durationRef.current > 0 ? durationRef.current : 6000;
       const progress = Math.min(1, elapsed / duration);
       progressRef.current = progress;
-      setRun((prev) =>
-        prev
-          ? {
-              ...prev,
-              progress,
-              elapsedMs: elapsed,
-            }
-          : prev
-      );
+      setRun((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        const latest = runRef.current;
+        return {
+          ...prev,
+          typed: latest?.typed ?? prev.typed,
+          combo: latest?.combo ?? prev.combo,
+          clean: latest?.clean ?? prev.clean,
+          progress,
+          elapsedMs: elapsed,
+        };
+      });
       if (progress >= 1) {
         finishQuestion("missed");
         return;
@@ -388,10 +430,7 @@ export function TypingGame() {
       if (!current) {
         return;
       }
-      const stored = loadSave();
-      stored.levelScores[current.level.id] = 0;
-      writeSave(stored);
-      markRun(current.level.id);
+      writeIncomplete(snapshotFromRun(current));
     };
     window.addEventListener("pagehide", onLeave);
     window.addEventListener("beforeunload", onLeave);
@@ -414,6 +453,17 @@ export function TypingGame() {
     const timer = window.setTimeout(() => setFlash(null), 480);
     return () => window.clearTimeout(timer);
   }, [flash]);
+
+  useEffect(() => {
+    if (!inPlay) {
+      return;
+    }
+    const current = runRef.current;
+    if (!current || (current.caught + current.missed === 0 && current.credits === 0)) {
+      return;
+    }
+    writeIncomplete(snapshotFromRun(current));
+  }, [inPlay, run?.caught, run?.missed, run?.credits, run?.bestCombo, run?.level.id, run?.prompts.length]);
 
   useEffect(() => {
     if (!meaningToast) {
@@ -456,20 +506,30 @@ export function TypingGame() {
     if (!run || screen !== "playing" || run.status !== "playing") {
       return;
     }
-    if (run.level.mode === "challenge") {
-      setRun({ ...run, typed: value });
+    const current = runRef.current ?? run;
+    if (current.level.mode === "challenge") {
+      const next = { ...current, typed: value };
+      runRef.current = next;
+      setRun(next);
       return;
     }
     const nextMatch = matchTyped(value, prompt);
-    const clean = run.clean && !nextMatch.hasError;
-    setRun({ ...run, typed: value, clean });
+    const errored = nextMatch.hasError;
+    const clean = current.clean && !errored;
+    const combo = errored ? 0 : current.combo;
+    if (errored && current.combo > 0) {
+      setFlash("zero");
+    }
+    const next = { ...current, typed: value, clean, combo };
+    runRef.current = next;
+    setRun(next);
     if (nextMatch.done || isExactAnswer(value, prompt)) {
       finishQuestion("caught");
     }
   };
 
   if (screen === "lobby") {
-    return <Lobby save={save} abandonedLevel={abandonedLevel} onStart={beginLevel} />;
+    return <Lobby save={save} onStart={beginLevel} />;
   }
 
   if (screen === "complete" && run) {
@@ -480,8 +540,18 @@ export function TypingGame() {
         caught={run.caught}
         missed={run.missed}
         bestCombo={run.bestCombo}
+        total={run.prompts.length}
+        bestRecord={
+          incomplete
+            ? save.levelScores[run.level.id] ?? 0
+            : Math.max(save.levelScores[run.level.id] ?? 0, run.credits)
+        }
+        newRecord={newRecord}
+        incomplete={incomplete}
         onLobby={() => {
+          clearIncomplete();
           setRun(null);
+          setIncomplete(false);
           setScreen("lobby");
         }}
         onReplay={() => beginLevel(run.level.id)}
@@ -612,7 +682,7 @@ export function TypingGame() {
             className={cn(
               "relative min-h-0 overflow-hidden border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)]",
               splitLayout
-                ? "coin-lane h-full w-[42%] shrink-0 rounded-xl"
+                ? "coin-lane h-full w-[45%] min-w-0 shrink-0 rounded-xl"
                 : "min-h-[var(--playfield-min)] flex-1 rounded-[1.25rem] sm:rounded-[1.6rem]"
             )}
           >
@@ -645,7 +715,7 @@ export function TypingGame() {
                   />
                 ) : null}
 
-                {screen === "playing" && isChallenge ? (
+                {screen === "playing" && isChallenge && viewportFit.width > 0 ? (
                   <ChallengeField
                     level={run.level}
                     prompts={run.prompts}
@@ -656,6 +726,7 @@ export function TypingGame() {
                     split={splitLayout}
                     onCatch={onChallengeCatch}
                     onMiss={onChallengeMiss}
+                    onComboBreak={onChallengeComboBreak}
                     onUrgent={setChallengeUrgent}
                     onComplete={onChallengeComplete}
                     onConsumeTyped={() => {
@@ -677,7 +748,10 @@ export function TypingGame() {
                         即將開始 · 無法暫停
                       </p>
                       <p
-                        className="font-display mt-2 text-[#ffe9a8]"
+                        className={cn(
+                          "font-display mt-2 text-[#ffe9a8]",
+                          splitLayout && "text-5xl"
+                        )}
                         style={{ fontSize: splitLayout ? undefined : "var(--countdown-num, 4.5rem)" }}
                       >
                         {count > 0 ? count : "GO"}
@@ -736,7 +810,7 @@ export function TypingGame() {
           <div
             className={cn(
               splitLayout
-                ? "flex h-full min-h-0 min-w-0 flex-1 flex-col"
+                ? "flex h-full min-h-0 w-[55%] min-w-0 flex-col"
                 : "mt-[var(--game-gap)] shrink-0 space-y-[var(--game-gap)]"
             )}
           >
@@ -764,6 +838,15 @@ export function TypingGame() {
                     style={{ width: `${Math.min(100, progressPct)}%` }}
                   />
                 </div>
+                <div className="shrink-0 py-0.5">
+                  <CreditsBar
+                    credits={run.credits}
+                    combo={run.combo}
+                    flash={flash}
+                    lastGain={run.lastGain}
+                    stacked
+                  />
+                </div>
                 {isChallenge ? (
                   <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-[rgba(232,196,110,0.22)] bg-[rgba(12,16,28,0.72)] px-2 py-2 text-center">
                     <p className="mb-1.5 text-[10px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
@@ -781,23 +864,6 @@ export function TypingGame() {
                     rail
                   />
                 )}
-                {meaningToast ? (
-                  <MeaningToast
-                    word={meaningToast.word}
-                    meaning={meaningToast.meaning}
-                    toastKey={meaningToast.key}
-                    inline
-                  />
-                ) : null}
-                <div className="shrink-0 py-1">
-                  <CreditsBar
-                    credits={run.credits}
-                    combo={run.combo}
-                    flash={flash}
-                    lastGain={run.lastGain}
-                    stacked
-                  />
-                </div>
               </>
             ) : null}
 
@@ -822,14 +888,12 @@ export function TypingGame() {
                 onChange={(event) => onTyped(event.target.value)}
                 onPaste={(event) => event.preventDefault()}
                 onFocus={() => {
-                  setInputFocused(true);
                   if (viewportFit.isPhone) {
                     pinViewport();
                     window.setTimeout(pinViewport, 50);
                     window.setTimeout(pinViewport, 280);
                   }
                 }}
-                onBlur={() => setInputFocused(false)}
                 placeholder={
                   screen === "playing"
                     ? isChallenge
@@ -845,6 +909,14 @@ export function TypingGame() {
                 )}
               />
             </form>
+            {splitLayout && meaningToast ? (
+              <MeaningToast
+                word={meaningToast.word}
+                meaning={meaningToast.meaning}
+                toastKey={meaningToast.key}
+                inline
+              />
+            ) : null}
 
             {!splitLayout ? (
               <CreditsBar
@@ -857,7 +929,7 @@ export function TypingGame() {
             ) : null}
             {!splitLayout && screen !== "playing" && !tight ? (
               <p className="text-center text-[11px] tracking-wide text-[#9e8d6c]">
-                放棄本關會立刻把這一關的分數歸零，且遊戲開始後沒有暫停。
+                開始後不能暫停。中途離開會留下練習結果，但不計入最佳成績。
               </p>
             ) : null}
           </div>

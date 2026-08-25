@@ -8,10 +8,10 @@ import { asset, COIN_FRONT } from "@/lib/asset";
 import { LEVELS, type LevelId } from "@/lib/levels";
 import { totalCredits, type SaveData } from "@/lib/storage";
 import { Keyboard, Timer, Trophy, Zap } from "lucide-react";
+import { useState } from "react";
 
 type LobbyProps = {
   save: SaveData;
-  abandonedLevel: LevelId | null;
   onStart: (levelId: LevelId) => void;
 };
 
@@ -24,22 +24,24 @@ const HOW_TO = [
   {
     icon: Keyboard,
     title: "打出英文",
-    text: "一般關在畫面中央輸入。挑戰關會同時落下多顆金幣，打出任一顆上面的英文就能消滅它。",
+    text: "一般關在畫面中央輸入。挑戰關會同時落下多顆金幣，打出任一顆上面的英文就能消滅它。片語關空白鍵也要打對。",
   },
   {
     icon: Timer,
     title: "趕在終點線前",
-    text: "金幣碰到金色終點線前打對，就能接住金幣並得到 Credits。",
+    text: "金幣碰到金色終點線前打對，就能接住金幣並得到 Credits。連續答對可累積 Combo。",
   },
   {
     icon: Trophy,
-    title: "過關與放棄",
-    text: "每關 20 題。中途放棄、切換分頁或關閉視窗，該關分數會直接歸零。",
+    title: "過關與離開",
+    text: "每關 20 題。完成後才會更新 Best Score。中途離開會留下練習結果，但不計入最佳成績。",
   },
 ];
 
-export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
+export function Lobby({ save, onStart }: LobbyProps) {
   const total = totalCredits(save);
+  const [pending, setPending] = useState<LevelId | null>(null);
+  const pendingLevel = pending ? LEVELS.find((level) => level.id === pending) : null;
 
   return (
     <SiteFrame>
@@ -59,7 +61,7 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
             英文打字金幣挑戰
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#d8c7a0] sm:text-base">
-            金幣從上方落下。中央是要打的英文，下方是 Credits。在金幣碰到終點線前打對，就能把這一題的金幣留下來。
+            金幣從上方落下。打對英文就能接住金幣、累積 Combo 與 Credits。
           </p>
           <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-[rgba(232,196,110,0.3)] bg-black/30 px-5 py-2">
             <span className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
@@ -70,12 +72,6 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
             </span>
           </div>
         </header>
-
-        {abandonedLevel ? (
-          <div className="rounded-2xl border border-rose-400/30 bg-rose-950/40 px-5 py-4 text-sm text-rose-100">
-            上一場進行中的第 {abandonedLevel} 關已被放棄，該關分數已歸零。
-          </div>
-        ) : null}
 
         <section className="grid gap-4 md:grid-cols-2">
           {LEVELS.map((level) => {
@@ -95,7 +91,7 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
                         {level.name}
                       </CardTitle>
                       <CardDescription className="mt-1 text-[#cbb892]">
-                        {level.blurb} 共 {level.questions} 題。
+                        {level.kind} · {level.questions} 題 · {level.pace}
                       </CardDescription>
                     </div>
                     <Badge
@@ -106,13 +102,10 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-[#9e8d6c]">
-                    開始後不能暫停。中途離開，本關分數歸零。
-                  </p>
+                <CardContent className="flex items-center justify-end">
                   <Button
                     size="lg"
-                    onClick={() => onStart(level.id)}
+                    onClick={() => setPending(level.id)}
                     className="h-10 min-w-28 rounded-full border border-[#ead08a]/40 bg-[linear-gradient(180deg,#f0d48a,#c4922e)] px-5 text-[#2a1b07] hover:bg-[linear-gradient(180deg,#ffe6a8,#d7a33c)]"
                   >
                     {score > 0 ? "再打一次" : "開始本關"}
@@ -151,6 +144,41 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
           </div>
         </section>
       </div>
+
+      {pendingLevel ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-3xl border border-[rgba(232,196,110,0.28)] bg-[#121624] px-5 py-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+            <p className="text-[11px] tracking-[0.32em] text-[#d7b56a] uppercase">
+              Ready · Level {pendingLevel.id}
+            </p>
+            <h2 className="font-display mt-1 text-2xl text-[#f7e7c2]">
+              {pendingLevel.name}
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#cbb892]">
+              開始後不能暫停。中途離開會留下練習結果，但不會計入 Best Score 與 Total Credits。
+            </p>
+            <div className="mt-5 flex gap-3">
+              <Button
+                variant="outline"
+                className="h-11 flex-1 rounded-full border-[rgba(232,196,110,0.35)] bg-transparent text-[#f7e7c2]"
+                onClick={() => setPending(null)}
+              >
+                返回
+              </Button>
+              <Button
+                className="h-11 flex-1 rounded-full border border-[#ead08a]/40 bg-[linear-gradient(180deg,#f0d48a,#c4922e)] text-[#2a1b07]"
+                onClick={() => {
+                  const id = pendingLevel.id;
+                  setPending(null);
+                  onStart(id);
+                }}
+              >
+                開始
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </SiteFrame>
   );
 }

@@ -62,6 +62,7 @@ export function PromptCard({
                   : "text-[clamp(1.05rem,4.2vh,2.45rem)]"
               )
         )}
+        data-prompt={prompt}
       >
         {prompt.split("").map((char, index) => {
           const reached = index < typed.length;
@@ -76,7 +77,11 @@ export function PromptCard({
                 index === match.correctLen && status === "playing" && "caret-glow"
               )}
             >
-              {char === " " ? (rail ? " " : "\u00a0") : char}
+              {char === " " ? (
+                <span className="inline-block min-w-[0.42em] border-b border-current/35">&nbsp;</span>
+              ) : (
+                char
+              )}
             </span>
           );
         })}

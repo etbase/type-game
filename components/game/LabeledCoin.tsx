@@ -84,16 +84,17 @@ export function LabeledCoin({
           />
           <div
             className={cn(
-              "relative z-10 mt-0.5 rounded-full border border-[#ead08a]/45 bg-[rgba(18,14,8,0.9)] text-center shadow-[0_6px_14px_rgba(0,0,0,0.35)]",
-              split ? "max-w-[9.5rem] px-1.5 py-0.5" : "max-w-[min(78vw,16.5rem)] px-2.5 py-0.5",
+              "relative z-10 mt-0.5 overflow-hidden rounded-full border border-[#ead08a]/45 bg-[rgba(18,14,8,0.9)] text-center shadow-[0_6px_14px_rgba(0,0,0,0.35)]",
+              split ? "max-w-[4.6rem] px-1 py-0.5" : "max-w-[min(78vw,16.5rem)] px-2.5 py-0.5",
               long && "rounded-2xl px-2 py-1"
             )}
           >
             <p
+              data-coin-word={word}
               className={cn(
                 "font-mono leading-tight font-semibold tracking-wide text-[#ffe9a8]",
                 long || split ? "break-words" : "whitespace-nowrap",
-                split || compact || long ? "text-[10px] sm:text-xs" : "text-xs sm:text-sm"
+                split ? "text-[9px] leading-tight" : compact || long ? "text-[10px] sm:text-xs" : "text-xs sm:text-sm"
               )}
             >
               {word}

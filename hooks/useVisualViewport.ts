@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 export type ViewportDensity = "roomy" | "compact" | "tight";
 
@@ -27,13 +27,13 @@ export function viewportDensity(height: number): ViewportDensity {
   return "roomy";
 }
 
-function isPhoneLike(width: number) {
+function isPhoneLike(width: number, height: number) {
   if (typeof window === "undefined") {
     return false;
   }
   const coarse = window.matchMedia("(pointer: coarse)").matches;
   const hoverNone = window.matchMedia("(hover: none)").matches;
-  return width < PHONE_MAX_WIDTH && coarse && hoverNone;
+  return width < PHONE_MAX_WIDTH && ((coarse && hoverNone) || height >= width * 1.15);
 }
 
 function readViewport(baseline: number): ViewportFit & { nextBaseline: number } {
@@ -55,7 +55,7 @@ function readViewport(baseline: number): ViewportFit & { nextBaseline: number } 
   const width = Math.round(vv?.width ?? window.innerWidth);
   const offsetTop = Math.round(vv?.offsetTop ?? 0);
   const offsetLeft = Math.round(vv?.offsetLeft ?? 0);
-  const isPhone = isPhoneLike(width);
+  const isPhone = isPhoneLike(width, height);
   let nextBaseline = baseline;
 
   if (nextBaseline === 0 || height > nextBaseline + 40) {
@@ -88,7 +88,7 @@ export function useVisualViewport(active: boolean): ViewportFit {
     density: "roomy",
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!active || typeof window === "undefined") {
       return;
     }

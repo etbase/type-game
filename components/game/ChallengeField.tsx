@@ -24,6 +24,7 @@ type ChallengeFieldProps = {
   split?: boolean;
   onCatch: (item: PromptItem, remaining: number) => void;
   onMiss: (item: PromptItem) => void;
+  onComboBreak?: () => void;
   onUrgent: (urgent: boolean) => void;
   onComplete: () => void;
   onConsumeTyped: () => void;
@@ -39,6 +40,7 @@ export function ChallengeField({
   split = false,
   onCatch,
   onMiss,
+  onComboBreak,
   onUrgent,
   onComplete,
   onConsumeTyped,
@@ -53,11 +55,12 @@ export function ChallengeField({
   const resolvedRef = useRef(0);
   const completedRef = useRef(false);
   const urgentRef = useRef(false);
+  const comboBrokeRef = useRef(false);
   const typedRef = useRef(typed);
-  const callbacksRef = useRef({ onCatch, onMiss, onUrgent, onComplete, onConsumeTyped });
+  const callbacksRef = useRef({ onCatch, onMiss, onComboBreak, onUrgent, onComplete, onConsumeTyped });
 
   typedRef.current = typed;
-  callbacksRef.current = { onCatch, onMiss, onUrgent, onComplete, onConsumeTyped };
+  callbacksRef.current = { onCatch, onMiss, onComboBreak, onUrgent, onComplete, onConsumeTyped };
 
   useEffect(() => {
     coinsRef.current = [];
@@ -67,8 +70,9 @@ export function ChallengeField({
     resolvedRef.current = 0;
     completedRef.current = false;
     urgentRef.current = false;
+    comboBrokeRef.current = false;
     setCoins([]);
-  }, [prompts]);
+  }, [prompts, split]);
 
   useEffect(() => {
     if (!playing) {
@@ -112,6 +116,19 @@ export function ChallengeField({
       }
 
       const typedValue = typedRef.current;
+      const hint = normalizeAnswer(typedValue);
+      const fallingNow = next.filter((coin) => coin.status === "falling");
+      const prefixHit = hint.length > 0 && fallingNow.some((coin) =>
+        normalizeAnswer(coin.prompt.word).startsWith(hint)
+      );
+      if (hint.length > 0 && fallingNow.length > 0 && !prefixHit) {
+        if (!comboBrokeRef.current) {
+          comboBrokeRef.current = true;
+          callbacksRef.current.onComboBreak?.();
+        }
+      } else {
+        comboBrokeRef.current = false;
+      }
       if (typedValue.trim()) {
         const hit = next.find(
           (coin) => coin.status === "falling" && isExactAnswer(typedValue, coin.prompt.word)
@@ -122,6 +139,7 @@ export function ChallengeField({
             coin.id === hit.id ? { ...coin, status: "shattered" as const, resolvedAt: time } : coin
           );
           resolvedRef.current += 1;
+          comboBrokeRef.current = false;
           callbacksRef.current.onConsumeTyped();
           callbacksRef.current.onCatch(hit.prompt, remaining);
         }

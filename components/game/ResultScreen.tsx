@@ -2,8 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { SiteFrame } from "@/components/game/SiteFrame";
-import { asset, COIN_SPARKLE } from "@/lib/asset";
+import { asset, COIN_FRONT, COIN_SPARKLE } from "@/lib/asset";
 import type { LevelDef } from "@/lib/levels";
+import { accuracyPct } from "@/lib/stats";
+import { cn } from "@/lib/utils";
 
 type ResultScreenProps = {
   level: LevelDef;
@@ -11,6 +13,10 @@ type ResultScreenProps = {
   caught: number;
   missed: number;
   bestCombo: number;
+  total: number;
+  bestRecord: number;
+  newRecord?: boolean;
+  incomplete?: boolean;
   onLobby: () => void;
   onReplay: () => void;
 };
@@ -21,39 +27,56 @@ export function ResultScreen({
   caught,
   missed,
   bestCombo,
+  total,
+  bestRecord,
+  newRecord = false,
+  incomplete = false,
   onLobby,
   onReplay,
 }: ResultScreenProps) {
-  const perfect = missed === 0 && caught > 0;
+  const accuracy = accuracyPct(caught, missed);
+  const perfect = !incomplete && missed === 0 && caught > 0;
 
   return (
     <SiteFrame className="flex items-center">
       <div className="mx-auto flex min-h-[100vh] min-h-[100dvh] min-h-[100svh] w-full max-w-xl flex-col items-center justify-center px-4 py-[clamp(1.5rem,5vh,2.5rem)] text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={asset(COIN_SPARKLE)}
+          src={asset(incomplete ? COIN_FRONT : COIN_SPARKLE)}
           alt=""
           className="h-[clamp(4.5rem,14vh,7rem)] w-[clamp(4.5rem,14vh,7rem)] object-contain drop-shadow-[0_0_30px_rgba(255,210,110,0.45)]"
         />
         <p className="mt-4 text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
-          {perfect ? "Perfect Clear" : "Level Complete"}
+          {incomplete ? "Practice Result" : perfect ? "Perfect Clear" : "Level Complete"}
         </p>
         <h1 className="font-display mt-2 text-[clamp(1.6rem,5vh,2.25rem)] text-[#f7e7c2]">
           第 {level.id} 關・{level.name}
         </h1>
+        {newRecord && !incomplete ? (
+          <p className="new-record mt-3 inline-flex rounded-full border border-[#ead08a]/50 bg-[rgba(42,28,8,0.9)] px-3 py-1 text-[11px] tracking-[0.32em] text-[#ffe9a8] uppercase">
+            New Record
+          </p>
+        ) : null}
         <p className="mt-2 text-sm text-[#cbb892]">
-          {perfect ? "全部接住了，本關分數已入帳" : "本關分數已入帳"}
+          {incomplete
+            ? "未完成，不計入 Best Score 與 Total Credits"
+            : perfect
+              ? "全部接住了，本關分數已入帳"
+              : "本關分數已入帳"}
         </p>
         <p className="font-mono mt-6 text-[clamp(2.25rem,8vh,3.75rem)] font-semibold text-[#ffe9a8] tabular-nums">
           {credits.toLocaleString("en-US")}
         </p>
         <p className="mt-1 text-xs tracking-[0.32em] text-[#d7b56a] uppercase">
-          Credits
+          {incomplete ? "Practice Credits" : "Credits"}
         </p>
-        <div className="mt-8 grid w-full grid-cols-3 gap-3 text-sm">
-          <Stat label="接住" value={String(caught)} />
-          <Stat label="錯過" value={String(missed)} />
-          <Stat label="最高連擊" value={`x${bestCombo}`} />
+        <div className="mt-8 grid w-full grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+          <Stat label="答對" value={`${caught} / ${total}`} />
+          <Stat label="Accuracy" value={`${accuracy}%`} />
+          <Stat label="Best Combo" value={`x${bestCombo}`} />
+          <Stat label={incomplete ? "本局 Credits" : "本局獲得"} value={credits.toLocaleString("en-US")} />
+          <Stat label="Highest Score" value={bestRecord.toLocaleString("en-US")} />
+          <Stat label={incomplete ? "狀態" : "Score"} value={incomplete ? "Incomplete" : credits.toLocaleString("en-US")} />
         </div>
         <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row">
           <Button
@@ -79,7 +102,7 @@ export function ResultScreen({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[rgba(232,196,110,0.18)] bg-black/30 px-3 py-4">
+    <div className={cn("rounded-2xl border border-[rgba(232,196,110,0.18)] bg-black/30 px-3 py-4")}>
       <p className="text-[10px] tracking-[0.24em] text-[#b9a078] uppercase">
         {label}
       </p>

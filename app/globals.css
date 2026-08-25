@@ -343,6 +343,7 @@
 
 .coin-lane {
   padding-inline: 0;
+  overflow: hidden;
 }
 
 .prompt-rail-word {
@@ -422,6 +423,51 @@
   width: clamp(3rem, 9vh, 5.25rem);
 }
 
+.combo-live {
+  transform: scale(1.06);
+  transition: transform 0.2s ease;
+}
+
+.combo-warm {
+  animation: combo-pop 0.38s ease;
+}
+
+.combo-hot {
+  animation: combo-pop 0.38s ease;
+  text-shadow: 0 0 12px rgba(255, 224, 138, 0.45);
+}
+
+@keyframes combo-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.new-record {
+  animation: new-record 0.9s ease;
+}
+
+@keyframes new-record {
+  0% {
+    transform: scale(0.86);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gold-dust,
   .finish-urgent,
@@ -430,7 +476,10 @@
   .credits-up,
   .coin-burst,
   .coin-shard,
-  .meaning-toast {
+  .meaning-toast,
+  .combo-warm,
+  .combo-hot,
+  .new-record {
     animation: none;
   }
 }

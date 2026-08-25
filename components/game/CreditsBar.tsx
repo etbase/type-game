@@ -12,6 +12,19 @@ type CreditsBarProps = {
   stacked?: boolean;
 };
 
+function comboTone(combo: number) {
+  if (combo >= 10) {
+    return "combo-hot text-[#ffe08a]";
+  }
+  if (combo >= 5) {
+    return "combo-warm text-[#ffe08a]";
+  }
+  if (combo > 1) {
+    return "combo-live text-[#ffe08a]";
+  }
+  return "text-[#8b7a5c]";
+}
+
 export function CreditsBar({
   credits,
   combo,
@@ -29,16 +42,18 @@ export function CreditsBar({
           flash === "zero" && "credits-zero"
         )}
       >
-        <span className="tracking-[0.16em] text-[#d7b56a] uppercase">Credits</span>
+        <span className="tracking-[0.16em] text-[#d7b56a] uppercase">Score / Credits</span>
         <span className="font-mono text-right font-semibold text-[#ffe9a8] tabular-nums">
           {credits.toLocaleString("en-US")}
           {flash === "up" && lastGain > 0 ? ` +${lastGain}` : ""}
         </span>
         <span className="tracking-[0.16em] text-[#b9a078] uppercase">Combo</span>
         <span
+          key={combo}
           className={cn(
             "font-mono text-right font-semibold tabular-nums",
-            combo > 1 ? "text-[#ffe08a]" : "text-[#8b7a5c]"
+            comboTone(combo),
+            combo >= 10 ? "text-base" : combo >= 5 ? "text-sm" : undefined
           )}
         >
           x{combo}
@@ -58,7 +73,7 @@ export function CreditsBar({
         <p className="flex items-center gap-1.5 text-[13px] leading-none">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={asset(COIN_FRONT)} alt="" className="h-5 w-5 object-contain" />
-          <span className="tracking-[0.18em] text-[#d7b56a] uppercase">Credits</span>
+          <span className="tracking-[0.18em] text-[#d7b56a] uppercase">Score</span>
           <span className="font-mono font-semibold text-[#ffe9a8] tabular-nums">
             {credits.toLocaleString("en-US")}
           </span>
@@ -66,12 +81,7 @@ export function CreditsBar({
             <span className="font-mono text-[#ffe9a8]">+{lastGain}</span>
           ) : null}
         </p>
-        <p
-          className={cn(
-            "font-mono text-[13px] font-semibold tabular-nums",
-            combo > 1 ? "text-[#ffe08a]" : "text-[#8b7a5c]"
-          )}
-        >
+        <p className={cn("font-mono text-[13px] font-semibold tabular-nums", comboTone(combo))}>
           Combo x{combo}
         </p>
       </div>
@@ -101,7 +111,7 @@ export function CreditsBar({
         />
         <div>
           <p className="text-[10px] tracking-[0.42em] text-[#d7b56a] uppercase">
-            Credits
+            Score / Credits
           </p>
           <p className="credits-value font-mono leading-none font-semibold text-[#ffe9a8] tabular-nums">
             {credits.toLocaleString("en-US")}
@@ -113,11 +123,9 @@ export function CreditsBar({
           Combo
         </p>
         <p
-          className={cn(
-            "font-mono font-semibold tabular-nums",
-            combo > 1 ? "text-[#ffe08a]" : "text-[#8b7a5c]"
-          )}
-          style={{ fontSize: "var(--credits-num, 1.25rem)" }}
+          key={combo}
+          className={cn("font-mono font-semibold tabular-nums", comboTone(combo))}
+          style={{ fontSize: combo >= 5 ? "1.35em" : "var(--credits-num, 1.25rem)" }}
         >
           x{combo}
         </p>

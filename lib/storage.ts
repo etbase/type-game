@@ -2,10 +2,20 @@ import type { LevelId } from "@/lib/levels";
 
 const SAVE_KEY = "gold-type-challenge-v1";
 const RUN_KEY = "gold-type-challenge-run";
+const INCOMPLETE_KEY = "gold-type-challenge-incomplete";
 
 export type SaveData = {
   levelScores: Record<LevelId, number>;
   cleared: Record<LevelId, boolean>;
+};
+
+export type IncompleteSnapshot = {
+  levelId: LevelId;
+  caught: number;
+  missed: number;
+  credits: number;
+  bestCombo: number;
+  total: number;
 };
 
 const emptyScores = (): Record<LevelId, number> => ({
@@ -57,15 +67,61 @@ export function clearRun() {
   window.sessionStorage.removeItem(RUN_KEY);
 }
 
-export function takeAbandonedRun(): LevelId | null {
-  const raw = window.sessionStorage.getItem(RUN_KEY);
-  if (!raw) {
+export function writeIncomplete(snapshot: IncompleteSnapshot) {
+  window.sessionStorage.setItem(INCOMPLETE_KEY, JSON.stringify(snapshot));
+}
+
+export function clearIncomplete() {
+  window.sessionStorage.removeItem(INCOMPLETE_KEY);
+}
+
+export function readIncomplete(): IncompleteSnapshot | null {
+  try {
+    const raw = window.sessionStorage.getItem(INCOMPLETE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as IncompleteSnapshot;
+    if (parsed.levelId !== 1 && parsed.levelId !== 2 && parsed.levelId !== 3 && parsed.levelId !== 4) {
+      return null;
+    }
+    return parsed;
+  } catch {
     return null;
   }
+}
+
+export function takeIncomplete(): IncompleteSnapshot | null {
+  const snapshot = readIncomplete();
+  clearIncomplete();
   window.sessionStorage.removeItem(RUN_KEY);
-  const id = Number(raw);
-  if (id === 1 || id === 2 || id === 3 || id === 4) {
-    return id;
+  return snapshot;
+}
+
+export function applyCompleteScore(save: SaveData, levelId: LevelId, credits: number) {
+  const previous = save.levelScores[levelId] ?? 0;
+  const newRecord = credits > previous;
+  if (newRecord) {
+    save.levelScores[levelId] = credits;
   }
-  return null;
+  save.cleared[levelId] = true;
+  return { save, newRecord, bestRecord: Math.max(previous, credits), previous };
+}
+
+export function snapshotFromRun(run: {
+  level: { id: LevelId; questions: number };
+  caught: number;
+  missed: number;
+  credits: number;
+  bestCombo: number;
+  prompts: { length: number };
+}): IncompleteSnapshot {
+  return {
+    levelId: run.level.id,
+    caught: run.caught,
+    missed: run.missed,
+    credits: run.credits,
+    bestCombo: run.bestCombo,
+    total: run.prompts.length,
+  };
 }
