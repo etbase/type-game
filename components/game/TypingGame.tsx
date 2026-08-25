@@ -600,7 +600,7 @@ export function TypingGame() {
         paddingBottom: splitLayout ? 0 : "env(safe-area-inset-bottom)",
       }}
     >
-      <SiteFrame fill plain>
+      <SiteFrame fill>
         <div
           className={cn(
             "mx-auto flex h-full min-h-0 w-full",
