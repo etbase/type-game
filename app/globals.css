@@ -128,6 +128,7 @@
   body {
     min-height: 100vh;
     min-height: 100dvh;
+    min-height: 100svh;
     color: var(--foreground);
     background: #0a0d14;
     -webkit-font-smoothing: antialiased;
@@ -327,9 +328,17 @@
 }
 
 .gameplay-shell {
-  overflow: hidden;
-  overscroll-behavior: none;
+  overscroll-behavior: contain;
   touch-action: manipulation;
+}
+
+.gameplay-shell.split-play {
+  overflow: hidden;
+}
+
+.gameplay-shell.stack-play {
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .coin-lane {
@@ -339,6 +348,78 @@
 .prompt-rail-word {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.stack-play {
+  --game-pad-x: clamp(0.75rem, 2.2vw, 1.25rem);
+  --game-pad-y: clamp(0.5rem, 2vh, 1.5rem);
+  --game-gap: clamp(0.4rem, 1.3vh, 1rem);
+  --game-title: clamp(1.05rem, 2.6vh, 1.5rem);
+  --playfield-min: clamp(10.5rem, 38vh, 22rem);
+  --coin-size: clamp(3.15rem, 11vh, 6.875rem);
+  --input-h: clamp(2.75rem, 6.2vh, 3.5rem);
+  --credits-num: clamp(1.2rem, 3.4vh, 1.875rem);
+  --credits-icon: clamp(1.75rem, 5vh, 2.75rem);
+  --prompt-pad-y: clamp(0.7rem, 2.2vh, 2rem);
+  --prompt-pad-x: clamp(0.85rem, 2.4vw, 2rem);
+  --countdown-num: clamp(2.4rem, 12vh, 4.5rem);
+}
+
+.stack-play[data-density="compact"] {
+  --playfield-min: clamp(9.5rem, 34vh, 16rem);
+  --game-pad-y: clamp(0.4rem, 1.4vh, 1rem);
+  --game-gap: 0.55rem;
+}
+
+.stack-play[data-density="tight"] {
+  --playfield-min: clamp(8.5rem, 32vh, 13rem);
+  --game-pad-y: 0.4rem;
+  --game-gap: 0.4rem;
+  --game-title: 1.05rem;
+  --coin-size: clamp(2.75rem, 10vh, 4.25rem);
+  --input-h: 2.75rem;
+  --credits-num: 1.2rem;
+  --credits-icon: 1.75rem;
+  --prompt-pad-y: 0.65rem;
+  --prompt-pad-x: 0.85rem;
+  --countdown-num: 2.5rem;
+}
+
+@media (max-height: 720px) {
+  .stack-play {
+    --playfield-min: clamp(9.5rem, 34vh, 16rem);
+    --game-pad-y: clamp(0.4rem, 1.4vh, 1rem);
+  }
+}
+
+@media (max-height: 540px) {
+  .stack-play {
+    --playfield-min: clamp(8.5rem, 32vh, 12.5rem);
+    --game-pad-y: 0.4rem;
+    --game-gap: 0.4rem;
+  }
+}
+
+.credits-bar-full {
+  padding: clamp(0.55rem, 1.5vh, 0.75rem) clamp(0.75rem, 2vw, 1rem);
+}
+
+.credits-bar-full img {
+  height: var(--credits-icon, 2.75rem);
+  width: var(--credits-icon, 2.75rem);
+}
+
+.credits-bar-full .credits-value {
+  font-size: var(--credits-num, 1.5rem);
+}
+
+.game-coin-stack {
+  height: var(--coin-size, 5.75rem);
+}
+
+.labeled-coin-stack {
+  height: clamp(3rem, 9vh, 5.25rem);
+  width: clamp(3rem, 9vh, 5.25rem);
 }
 
 @media (prefers-reduced-motion: reduce) {

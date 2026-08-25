@@ -41,7 +41,7 @@ export function PromptCard({
           ? "min-h-0 w-full flex-1 overflow-hidden rounded-2xl border border-[rgba(232,196,110,0.22)] bg-[rgba(12,16,28,0.72)] px-2 py-2"
           : cn(
               "mx-auto w-[min(100%,42rem)] rounded-3xl border shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md",
-              compact ? "px-3 py-3 sm:px-5 sm:py-4" : "px-5 py-6 sm:px-8 sm:py-8"
+              compact ? "px-3 py-3" : "px-[var(--prompt-pad-x,2rem)] py-[var(--prompt-pad-y,2rem)]"
             ),
         status === "missed" && "border-rose-400/40 bg-rose-950/35",
         status !== "missed" && !rail && "border-[rgba(232,196,110,0.28)] bg-[rgba(12,16,28,0.82)]"
@@ -58,8 +58,8 @@ export function PromptCard({
             : cn(
                 "leading-tight break-words",
                 compact
-                  ? "text-[clamp(1.1rem,5.2vw,1.85rem)]"
-                  : "text-[clamp(1.35rem,4.6vw,2.45rem)]"
+                  ? "text-[clamp(1rem,4.4vh,1.65rem)]"
+                  : "text-[clamp(1.05rem,4.2vh,2.45rem)]"
               )
         )}
       >

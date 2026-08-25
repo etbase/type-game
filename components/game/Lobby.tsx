@@ -43,14 +43,14 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
 
   return (
     <SiteFrame>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:py-12">
-        <header className="relative overflow-hidden rounded-[2rem] border border-[rgba(232,196,110,0.28)] bg-[linear-gradient(165deg,rgba(42,32,16,0.78),rgba(10,12,20,0.94))] px-6 py-10 text-center shadow-[0_30px_80px_rgba(0,0,0,0.35)] sm:px-12 sm:py-14">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-[clamp(1rem,4vh,3rem)] sm:gap-8">
+        <header className="relative overflow-hidden rounded-[2rem] border border-[rgba(232,196,110,0.28)] bg-[linear-gradient(165deg,rgba(42,32,16,0.78),rgba(10,12,20,0.94))] px-6 py-[clamp(1.5rem,5vh,3.5rem)] text-center shadow-[0_30px_80px_rgba(0,0,0,0.35)] sm:px-12">
           <div className="pointer-events-none absolute -top-16 left-1/2 h-48 w-72 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,210,110,0.3),transparent_70%)]" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={asset(COIN_FRONT)}
             alt=""
-            className="mx-auto mb-4 h-24 w-24 object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.45)] sm:h-28 sm:w-28"
+            className="mx-auto mb-4 h-20 w-20 object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.45)] sm:h-28 sm:w-28"
           />
           <p className="text-[11px] tracking-[0.48em] text-[#d7b56a] uppercase">
             Browser Arcade

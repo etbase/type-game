@@ -28,23 +28,23 @@ export function ResultScreen({
 
   return (
     <SiteFrame className="flex items-center">
-      <div className="mx-auto flex min-h-[100vh] min-h-[100dvh] w-full max-w-xl flex-col items-center justify-center px-4 py-10 text-center">
+      <div className="mx-auto flex min-h-[100vh] min-h-[100dvh] min-h-[100svh] w-full max-w-xl flex-col items-center justify-center px-4 py-[clamp(1.5rem,5vh,2.5rem)] text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={asset(COIN_SPARKLE)}
           alt=""
-          className="h-28 w-28 object-contain drop-shadow-[0_0_30px_rgba(255,210,110,0.45)]"
+          className="h-[clamp(4.5rem,14vh,7rem)] w-[clamp(4.5rem,14vh,7rem)] object-contain drop-shadow-[0_0_30px_rgba(255,210,110,0.45)]"
         />
         <p className="mt-4 text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
           {perfect ? "Perfect Clear" : "Level Complete"}
         </p>
-        <h1 className="font-display mt-2 text-4xl text-[#f7e7c2]">
+        <h1 className="font-display mt-2 text-[clamp(1.6rem,5vh,2.25rem)] text-[#f7e7c2]">
           第 {level.id} 關・{level.name}
         </h1>
         <p className="mt-2 text-sm text-[#cbb892]">
           {perfect ? "全部接住了，本關分數已入帳" : "本關分數已入帳"}
         </p>
-        <p className="font-mono mt-6 text-6xl font-semibold text-[#ffe9a8] tabular-nums">
+        <p className="font-mono mt-6 text-[clamp(2.25rem,8vh,3.75rem)] font-semibold text-[#ffe9a8] tabular-nums">
           {credits.toLocaleString("en-US")}
         </p>
         <p className="mt-1 text-xs tracking-[0.32em] text-[#d7b56a] uppercase">

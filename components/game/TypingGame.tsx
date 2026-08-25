@@ -403,9 +403,9 @@ export function TypingGame() {
 
   useEffect(() => {
     if (screen === "playing" && run?.status === "playing") {
-      inputRef.current?.focus({ preventScroll: true });
+      inputRef.current?.focus({ preventScroll: viewportFit.isPhone });
     }
-  }, [screen, run?.status, run?.index]);
+  }, [screen, run?.status, run?.index, viewportFit.isPhone]);
 
   useEffect(() => {
     if (!flash) {
@@ -424,7 +424,7 @@ export function TypingGame() {
   }, [meaningToast]);
 
   useEffect(() => {
-    if (!inPlay) {
+    if (!splitLayout) {
       return;
     }
     const html = document.documentElement;
@@ -447,7 +447,7 @@ export function TypingGame() {
       body.style.overscrollBehavior = prevBodyOverscroll;
       window.removeEventListener("scroll", pin);
     };
-  }, [inPlay]);
+  }, [splitLayout]);
 
   const prompt = run?.prompts[run.index]?.word ?? "";
   const match = useMemo(() => matchTyped(run?.typed ?? "", prompt), [run?.typed, prompt]);
@@ -504,7 +504,15 @@ export function TypingGame() {
   const urgent = isChallenge
     ? challengeUrgent
     : screen === "playing" && run.status === "playing" && run.progress >= 0.72;
-  const finishOffset = splitLayout ? "bottom-[1.7rem]" : "bottom-[4.75rem]";
+  const density = viewportFit.density;
+  const tight = density === "tight";
+  const finishOffset = splitLayout
+    ? "bottom-[1.7rem]"
+    : tight
+      ? "bottom-[2.6rem]"
+      : density === "compact"
+        ? "bottom-[3.4rem]"
+        : "bottom-[4.75rem]";
   const shellHeight = viewportFit.height || undefined;
   const narrow = viewportFit.width > 0 && viewportFit.width < 740;
   const inputError = !isChallenge && match.hasError;
@@ -514,8 +522,12 @@ export function TypingGame() {
 
   return (
     <div
-      className={cn("gameplay-shell bg-[#0a0d14]", splitLayout && "split-play")}
+      className={cn(
+        "gameplay-shell bg-[#0a0d14]",
+        splitLayout ? "split-play" : "stack-play"
+      )}
       data-gameplay-layout={splitLayout ? "split" : "stack"}
+      data-density={density}
       style={{
         position: "fixed",
         top: viewportFit.height ? viewportFit.offsetTop : 0,
@@ -525,32 +537,50 @@ export function TypingGame() {
         paddingBottom: splitLayout ? 0 : "env(safe-area-inset-bottom)",
       }}
     >
-      <SiteFrame fill plain={splitLayout} className="h-full">
+      <SiteFrame
+        fill={splitLayout}
+        contain={!splitLayout}
+        plain={splitLayout}
+      >
         <div
           className={cn(
-            "mx-auto flex h-full min-h-0 w-full",
+            "mx-auto flex w-full",
             splitLayout
-              ? "max-w-none flex-row gap-1.5 px-1.5 py-1"
+              ? "h-full min-h-0 max-w-none flex-row gap-1.5 px-1.5 py-1"
               : cn(
-                  "flex-col px-4 py-4 sm:py-6",
+                  "min-h-full flex-col",
                   isChallenge ? "max-w-4xl" : "max-w-3xl"
                 ),
             shake && "screen-shake"
           )}
+          style={
+            splitLayout
+              ? undefined
+              : {
+                  paddingLeft: "var(--game-pad-x)",
+                  paddingRight: "var(--game-pad-x)",
+                  paddingTop: "var(--game-pad-y)",
+                  paddingBottom: "var(--game-pad-y)",
+                  gap: 0,
+                }
+          }
           onClick={() => inputRef.current?.focus({ preventScroll: true })}
         >
           {!splitLayout ? (
             <>
-              <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="mb-[var(--game-gap)] flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
                     Level {run.level.id} · {run.level.englishName}
                   </p>
-                  <h1 className="font-display text-xl text-[#f7e7c2] sm:text-2xl">
+                  <h1
+                    className="font-display text-[#f7e7c2]"
+                    style={{ fontSize: "var(--game-title)" }}
+                  >
                     {run.level.name}
                   </h1>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                   <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
                     {isChallenge
                       ? `${questionNo} / ${questionTotal}`
@@ -569,7 +599,7 @@ export function TypingGame() {
                   </Button>
                 </div>
               </div>
-              <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-black/40">
+              <div className="mb-[var(--game-gap)] h-1.5 overflow-hidden rounded-full bg-black/40">
                 <div
                   className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
                   style={{ width: `${Math.min(100, progressPct)}%` }}
@@ -583,7 +613,7 @@ export function TypingGame() {
               "relative min-h-0 overflow-hidden border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)]",
               splitLayout
                 ? "coin-lane h-full w-[42%] shrink-0 rounded-xl"
-                : "flex-1 rounded-[1.25rem] sm:rounded-[1.6rem]"
+                : "min-h-[var(--playfield-min)] flex-1 rounded-[1.25rem] sm:rounded-[1.6rem]"
             )}
           >
             <div
@@ -610,6 +640,7 @@ export function TypingGame() {
                     caught={run.status === "caught"}
                     missed={run.status === "missed"}
                     elapsedMs={run.elapsedMs}
+                    compact={density !== "roomy"}
                     split={splitLayout}
                   />
                 ) : null}
@@ -620,7 +651,7 @@ export function TypingGame() {
                     prompts={run.prompts}
                     playing={run.status === "playing"}
                     typed={run.typed}
-                    compact={splitLayout}
+                    compact={splitLayout || density !== "roomy"}
                     narrow={narrow}
                     split={splitLayout}
                     onCatch={onChallengeCatch}
@@ -645,19 +676,29 @@ export function TypingGame() {
                       <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
                         即將開始 · 無法暫停
                       </p>
-                      <p className="font-display mt-2 text-7xl text-[#ffe9a8]">
+                      <p
+                        className="font-display mt-2 text-[#ffe9a8]"
+                        style={{ fontSize: splitLayout ? undefined : "var(--countdown-num, 4.5rem)" }}
+                      >
                         {count > 0 ? count : "GO"}
                       </p>
-                      <p className="mt-3 text-sm text-[#cbb892]">
-                        {isChallenge
-                          ? "倒數結束後，打出畫面上任一顆金幣的英文"
-                          : "倒數結束後，直接打出中央的英文"}
-                      </p>
+                      {!tight ? (
+                        <p className="mt-3 text-sm text-[#cbb892]">
+                          {isChallenge
+                            ? "倒數結束後，打出畫面上任一顆金幣的英文"
+                            : "倒數結束後，直接打出中央的英文"}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 ) : splitLayout || isChallenge ? null : (
                   <div className="absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
-                    <PromptCard prompt={prompt} typed={run.typed} status={run.status} />
+                    <PromptCard
+                      prompt={prompt}
+                      typed={run.typed}
+                      status={run.status}
+                      compact={density !== "roomy"}
+                    />
                   </div>
                 )}
               </div>
@@ -696,7 +737,7 @@ export function TypingGame() {
             className={cn(
               splitLayout
                 ? "flex h-full min-h-0 min-w-0 flex-1 flex-col"
-                : "mt-4 shrink-0 space-y-3"
+                : "mt-[var(--game-gap)] shrink-0 space-y-[var(--game-gap)]"
             )}
           >
             {splitLayout ? (
@@ -782,9 +823,11 @@ export function TypingGame() {
                 onPaste={(event) => event.preventDefault()}
                 onFocus={() => {
                   setInputFocused(true);
-                  pinViewport();
-                  window.setTimeout(pinViewport, 50);
-                  window.setTimeout(pinViewport, 280);
+                  if (viewportFit.isPhone) {
+                    pinViewport();
+                    window.setTimeout(pinViewport, 50);
+                    window.setTimeout(pinViewport, 280);
+                  }
                 }}
                 onBlur={() => setInputFocused(false)}
                 placeholder={
@@ -797,7 +840,7 @@ export function TypingGame() {
                 aria-label="英文輸入"
                 className={cn(
                   "game-type-input w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
-                  splitLayout ? "h-11" : "h-12 sm:h-14",
+                  splitLayout ? "h-11" : "h-[var(--input-h)]",
                   inputError && "border-rose-400/60"
                 )}
               />
@@ -809,9 +852,10 @@ export function TypingGame() {
                 combo={run.combo}
                 flash={flash}
                 lastGain={run.lastGain}
+                compact={tight}
               />
             ) : null}
-            {!splitLayout && screen !== "playing" ? (
+            {!splitLayout && screen !== "playing" && !tight ? (
               <p className="text-center text-[11px] tracking-wide text-[#9e8d6c]">
                 放棄本關會立刻把這一關的分數歸零，且遊戲開始後沒有暫停。
               </p>

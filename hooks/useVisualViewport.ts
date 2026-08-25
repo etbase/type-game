@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+export type ViewportDensity = "roomy" | "compact" | "tight";
+
 export type ViewportFit = {
   height: number;
   offsetTop: number;
@@ -9,10 +11,30 @@ export type ViewportFit = {
   width: number;
   keyboardOpen: boolean;
   isPhone: boolean;
+  density: ViewportDensity;
 };
 
 const KEYBOARD_DELTA = 120;
 const PHONE_MAX_WIDTH = 560;
+
+export function viewportDensity(height: number): ViewportDensity {
+  if (height > 0 && height < 540) {
+    return "tight";
+  }
+  if (height > 0 && height < 720) {
+    return "compact";
+  }
+  return "roomy";
+}
+
+function isPhoneLike(width: number) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const coarse = window.matchMedia("(pointer: coarse)").matches;
+  const hoverNone = window.matchMedia("(hover: none)").matches;
+  return width < PHONE_MAX_WIDTH && coarse && hoverNone;
+}
 
 function readViewport(baseline: number): ViewportFit & { nextBaseline: number } {
   if (typeof window === "undefined") {
@@ -23,6 +45,7 @@ function readViewport(baseline: number): ViewportFit & { nextBaseline: number } 
       width: 0,
       keyboardOpen: false,
       isPhone: false,
+      density: "roomy",
       nextBaseline: baseline,
     };
   }
@@ -32,7 +55,7 @@ function readViewport(baseline: number): ViewportFit & { nextBaseline: number } 
   const width = Math.round(vv?.width ?? window.innerWidth);
   const offsetTop = Math.round(vv?.offsetTop ?? 0);
   const offsetLeft = Math.round(vv?.offsetLeft ?? 0);
-  const isPhone = window.innerWidth < PHONE_MAX_WIDTH;
+  const isPhone = isPhoneLike(width);
   let nextBaseline = baseline;
 
   if (nextBaseline === 0 || height > nextBaseline + 40) {
@@ -47,6 +70,7 @@ function readViewport(baseline: number): ViewportFit & { nextBaseline: number } 
     width,
     keyboardOpen,
     isPhone,
+    density: viewportDensity(height),
     nextBaseline,
   };
 }
@@ -61,6 +85,7 @@ export function useVisualViewport(active: boolean): ViewportFit {
     width: 0,
     keyboardOpen: false,
     isPhone: false,
+    density: "roomy",
   });
 
   useEffect(() => {
@@ -68,7 +93,7 @@ export function useVisualViewport(active: boolean): ViewportFit {
       return;
     }
 
-    const update = () => {
+    const apply = () => {
       const orientation = window.matchMedia("(orientation: portrait)").matches ? "p" : "l";
       if (orientation !== orientationRef.current) {
         orientationRef.current = orientation;
@@ -84,20 +109,27 @@ export function useVisualViewport(active: boolean): ViewportFit {
         width: next.width,
         keyboardOpen: next.keyboardOpen,
         isPhone: next.isPhone,
+        density: next.density,
       });
     };
 
-    update();
+    apply();
     const vv = window.visualViewport;
-    vv?.addEventListener("resize", update);
-    vv?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    window.addEventListener("orientationchange", update);
+    const pointer = window.matchMedia("(pointer: coarse)");
+    const hover = window.matchMedia("(hover: none)");
+    vv?.addEventListener("resize", apply);
+    vv?.addEventListener("scroll", apply);
+    window.addEventListener("resize", apply);
+    window.addEventListener("orientationchange", apply);
+    pointer.addEventListener("change", apply);
+    hover.addEventListener("change", apply);
     return () => {
-      vv?.removeEventListener("resize", update);
-      vv?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-      window.removeEventListener("orientationchange", update);
+      vv?.removeEventListener("resize", apply);
+      vv?.removeEventListener("scroll", apply);
+      window.removeEventListener("resize", apply);
+      window.removeEventListener("orientationchange", apply);
+      pointer.removeEventListener("change", apply);
+      hover.removeEventListener("change", apply);
     };
   }, [active]);
 

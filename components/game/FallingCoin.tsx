@@ -51,7 +51,7 @@ export function FallingCoin({
           height={110}
           className={cn(
             "relative w-auto select-none drop-shadow-[0_18px_24px_rgba(0,0,0,0.55)]",
-            split ? "h-[48px]" : compact ? "h-[58px]" : "h-[92px] sm:h-[110px]"
+            split ? "h-[48px]" : compact ? "h-[58px]" : "game-coin-stack"
           )}
           draggable={false}
         />

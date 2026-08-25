@@ -7,15 +7,26 @@ type SiteFrameProps = {
   children: React.ReactNode;
   className?: string;
   fill?: boolean;
+  contain?: boolean;
   plain?: boolean;
 };
 
-export function SiteFrame({ children, className, fill = false, plain = false }: SiteFrameProps) {
+export function SiteFrame({
+  children,
+  className,
+  fill = false,
+  contain = false,
+  plain = false,
+}: SiteFrameProps) {
   return (
     <div
       className={cn(
         "relative isolate overflow-x-hidden",
-        fill ? "h-full overflow-hidden" : "min-h-[100vh] min-h-[100dvh]",
+        fill
+          ? "h-full overflow-hidden"
+          : contain
+            ? "min-h-full"
+            : "min-h-[100vh] min-h-[100dvh] min-h-[100svh]",
         className
       )}
     >
