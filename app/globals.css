@@ -164,6 +164,16 @@
   animation: coin-burst 0.55s ease;
 }
 
+.coin-shard {
+  animation-name: coin-shatter;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+.labeled-coin-hint img {
+  filter: brightness(1.18);
+}
+
 @keyframes screen-shake {
   0%,
   100% {
@@ -213,6 +223,17 @@
   100% {
     transform: scale(1);
     filter: brightness(1);
+  }
+}
+
+@keyframes coin-shatter {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) rotate(var(--tr)) scale(0.35);
   }
 }
 
@@ -317,6 +338,7 @@
   .screen-shake,
   .credits-up,
   .coin-burst,
+  .coin-shard,
   .meaning-toast {
     animation: none;
   }

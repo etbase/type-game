@@ -7,7 +7,7 @@ import { SiteFrame } from "@/components/game/SiteFrame";
 import { asset, COIN_FRONT } from "@/lib/asset";
 import { LEVELS, type LevelId } from "@/lib/levels";
 import { totalCredits, type SaveData } from "@/lib/storage";
-import { Keyboard, Lock, Timer, Trophy, Zap } from "lucide-react";
+import { Keyboard, Timer, Trophy, Zap } from "lucide-react";
 
 type LobbyProps = {
   save: SaveData;
@@ -23,8 +23,8 @@ const HOW_TO = [
   },
   {
     icon: Keyboard,
-    title: "打出中央英文",
-    text: "畫面正中央是目前要輸入的內容。下方輸入框直接打字，大小寫都可以。",
+    title: "打出英文",
+    text: "一般關在畫面中央輸入。挑戰關會同時落下多顆金幣，打出任一顆上面的英文就能消滅它。",
   },
   {
     icon: Timer,
@@ -78,8 +78,7 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
         ) : null}
 
         <section className="grid gap-4 md:grid-cols-2">
-          {LEVELS.map((level, index) => {
-            const locked = index > 0 && !save.cleared[LEVELS[index - 1].id];
+          {LEVELS.map((level) => {
             const score = save.levelScores[level.id];
             return (
               <Card
@@ -109,26 +108,14 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-3">
                   <p className="text-xs text-[#9e8d6c]">
-                    {locked
-                      ? `先完成第 ${level.id - 1} 關才能解鎖。`
-                      : "開始後不能暫停。中途離開，本關分數歸零。"}
+                    開始後不能暫停。中途離開，本關分數歸零。
                   </p>
                   <Button
                     size="lg"
-                    disabled={locked}
                     onClick={() => onStart(level.id)}
                     className="h-10 min-w-28 rounded-full border border-[#ead08a]/40 bg-[linear-gradient(180deg,#f0d48a,#c4922e)] px-5 text-[#2a1b07] hover:bg-[linear-gradient(180deg,#ffe6a8,#d7a33c)]"
                   >
-                    {locked ? (
-                      <>
-                        <Lock data-icon="inline-start" />
-                        未解鎖
-                      </>
-                    ) : score > 0 ? (
-                      "再打一次"
-                    ) : (
-                      "開始本關"
-                    )}
+                    {score > 0 ? "再打一次" : "開始本關"}
                   </Button>
                 </CardContent>
               </Card>

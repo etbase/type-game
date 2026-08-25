@@ -5,14 +5,19 @@ export type PromptItem = {
   meaning: string;
 };
 
+export type LevelMode = "classic" | "challenge";
+
 export type LevelDef = {
   id: LevelId;
   name: string;
   englishName: string;
   blurb: string;
+  mode: LevelMode;
   prompts: PromptItem[];
   questions: number;
   charMs: number;
+  wordMs: number;
+  phraseBonusMs: number;
   minMs: number;
   maxMs: number;
 };
@@ -29,10 +34,13 @@ export const LEVELS: LevelDef[] = [
     name: "入門",
     englishName: "Beginner",
     blurb: "短單字，金幣落得慢。",
+    mode: "classic",
     questions: QUESTIONS_PER_LEVEL,
-    charMs: 430,
+    charMs: 220,
+    wordMs: 0,
+    phraseBonusMs: 0,
     minMs: 5600,
-    maxMs: 9000,
+    maxMs: 9800,
     prompts: items(
       ["cat", "貓"],
       ["dog", "狗"],
@@ -67,10 +75,13 @@ export const LEVELS: LevelDef[] = [
     name: "進階",
     englishName: "Advanced",
     blurb: "較長單字，節奏加快。",
+    mode: "classic",
     questions: QUESTIONS_PER_LEVEL,
-    charMs: 360,
-    minMs: 5000,
-    maxMs: 8800,
+    charMs: 280,
+    wordMs: 0,
+    phraseBonusMs: 0,
+    minMs: 5400,
+    maxMs: 11200,
     prompts: items(
       ["because", "因為"],
       ["together", "一起"],
@@ -105,10 +116,13 @@ export const LEVELS: LevelDef[] = [
     name: "片語",
     englishName: "Phrases",
     blurb: "生活片語，空白鍵也算。",
+    mode: "classic",
     questions: QUESTIONS_PER_LEVEL,
-    charMs: 300,
-    minMs: 6200,
-    maxMs: 12500,
+    charMs: 200,
+    wordMs: 780,
+    phraseBonusMs: 650,
+    minMs: 7400,
+    maxMs: 16800,
     prompts: items(
       ["good morning", "早安"],
       ["thank you", "謝謝"],
@@ -142,36 +156,39 @@ export const LEVELS: LevelDef[] = [
     id: 4,
     name: "挑戰",
     englishName: "Challenge",
-    blurb: "完整句子，金幣仍不停。",
+    blurb: "多顆金幣同時落下。打出任一顆上面的英文就能消滅它。",
+    mode: "challenge",
     questions: QUESTIONS_PER_LEVEL,
-    charMs: 250,
-    minMs: 8000,
-    maxMs: 17000,
+    charMs: 210,
+    wordMs: 720,
+    phraseBonusMs: 480,
+    minMs: 7800,
+    maxMs: 14800,
     prompts: items(
-      ["The early bird catches the worm", "早起的鳥兒有蟲吃"],
-      ["Knowledge is power", "知識就是力量"],
-      ["Practice every day", "每天練習"],
-      ["A journey of a thousand miles", "千里之行，始於足下"],
-      ["Actions speak louder than words", "行動勝於言語"],
-      ["Better late than never", "遲做總比不做好"],
-      ["Every cloud has a silver lining", "黑暗中總有一線光明"],
-      ["Honesty is the best policy", "誠實為上策"],
-      ["Where there is a will there is a way", "有志者事竟成"],
-      ["Time flies when you are having fun", "快樂的時光過得特別快"],
-      ["An apple a day keeps the doctor away", "一天一蘋果，醫生遠離我"],
-      ["The pen is mightier than the sword", "文勝於武"],
-      ["Rome was not built in a day", "羅馬不是一天造成的"],
-      ["Look before you leap", "三思而後行"],
-      ["Two heads are better than one", "人多智慧高"],
-      ["A picture is worth a thousand words", "一圖勝千言"],
-      ["Fortune favors the brave", "幸運眷顧勇者"],
-      ["The grass is always greener", "這山望著那山高"],
-      ["Strike while the iron is hot", "打鐵趁熱"],
-      ["All that glitters is not gold", "閃閃發亮的不都是金子"],
-      ["When in Rome do as the Romans do", "入鄉隨俗"],
-      ["Practice makes perfect", "熟能生巧"],
-      ["Never stop learning English", "永遠不要停止學英文"],
-      ["Make each coin count", "讓每一枚金幣都算數"]
+      ["apple", "蘋果"],
+      ["beautiful", "美麗的"],
+      ["take care", "保重"],
+      ["chocolate", "巧克力"],
+      ["good morning", "早安"],
+      ["never give up", "永不放棄"],
+      ["treasure", "寶藏"],
+      ["see you soon", "很快再見"],
+      ["umbrella", "雨傘"],
+      ["well done", "做得好"],
+      ["adventure", "冒險"],
+      ["thank you", "謝謝"],
+      ["rainbow", "彩虹"],
+      ["keep it up", "繼續保持"],
+      ["language", "語言"],
+      ["of course", "當然"],
+      ["calendar", "日曆"],
+      ["wait a minute", "等一下"],
+      ["journey", "旅程"],
+      ["piece of cake", "輕而易舉"],
+      ["computer", "電腦"],
+      ["take a break", "休息一下"],
+      ["elephant", "大象"],
+      ["break a leg", "祝你好運"]
     ),
   },
 ];
@@ -197,8 +214,26 @@ export function dealPrompts(level: LevelDef) {
   return shuffle(level.prompts).slice(0, level.questions);
 }
 
+export function promptMetrics(text: string) {
+  const trimmed = text.trim();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  const letters = trimmed.replace(/\s/g, "").length;
+  return {
+    words: words.length,
+    letters,
+    isPhrase: words.length >= 2,
+  };
+}
+
 export function fallDurationMs(prompt: PromptItem | string, level: LevelDef) {
   const text = typeof prompt === "string" ? prompt : prompt.word;
-  const raw = 1600 + text.length * level.charMs;
+  const { words, letters, isPhrase } = promptMetrics(text);
+  const extraLetters = Math.max(0, letters - 4);
+  const extraWords = Math.max(0, words - 1);
+  const raw =
+    level.minMs +
+    extraLetters * level.charMs +
+    extraWords * level.wordMs +
+    (isPhrase ? level.phraseBonusMs : 0);
   return Math.min(level.maxMs, Math.max(level.minMs, raw));
 }

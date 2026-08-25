@@ -4,6 +4,16 @@ export type TypeMatch = {
   done: boolean;
 };
 
+export function normalizeAnswer(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function isExactAnswer(typed: string, target: string) {
+  const a = normalizeAnswer(typed);
+  const b = normalizeAnswer(target);
+  return a.length > 0 && a === b;
+}
+
 export function matchTyped(typed: string, target: string): TypeMatch {
   const a = typed;
   const b = target;

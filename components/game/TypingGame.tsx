@@ -1,6 +1,7 @@
 "use client";
 
 import { CreditsBar } from "@/components/game/CreditsBar";
+import { ChallengeField } from "@/components/game/ChallengeField";
 import { FallingCoin } from "@/components/game/FallingCoin";
 import { Lobby } from "@/components/game/Lobby";
 import { MeaningToast } from "@/components/game/MeaningToast";
@@ -24,7 +25,7 @@ import {
   writeSave,
   type SaveData,
 } from "@/lib/storage";
-import { matchTyped, scoreCatch } from "@/lib/typing";
+import { isExactAnswer, matchTyped, scoreCatch } from "@/lib/typing";
 import { cn } from "@/lib/utils";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -69,6 +70,7 @@ export function TypingGame() {
     meaning: string;
     key: number;
   } | null>(null);
+  const [challengeUrgent, setChallengeUrgent] = useState(false);
 
   const inPlay = screen === "playing" || screen === "countdown";
   const viewportFit = useVisualViewport(inPlay);
@@ -171,6 +173,7 @@ export function TypingGame() {
     setScreen("countdown");
     setAbandonedLevel(null);
     markRun(levelId);
+    setChallengeUrgent(false);
   }, []);
 
   const abandonLevel = useCallback(() => {
@@ -277,8 +280,70 @@ export function TypingGame() {
     [goToNextQuestion]
   );
 
+  const onChallengeCatch = useCallback((item: PromptItem, remaining: number) => {
+    const current = runRef.current;
+    if (!current) {
+      return;
+    }
+    const combo = current.combo + 1;
+    const lastGain = scoreCatch({
+      levelId: current.level.id,
+      remaining,
+      combo,
+      clean: true,
+    });
+    const next: RunState = {
+      ...current,
+      credits: current.credits + lastGain,
+      combo,
+      bestCombo: Math.max(current.bestCombo, combo),
+      caught: current.caught + 1,
+      typed: "",
+      lastGain,
+    };
+    runRef.current = next;
+    setRun(next);
+    setFlash("up");
+    setMeaningToast({
+      word: item.word,
+      meaning: item.meaning,
+      key: Date.now(),
+    });
+  }, []);
+
+  const onChallengeMiss = useCallback(() => {
+    const current = runRef.current;
+    if (!current) {
+      return;
+    }
+    const next: RunState = {
+      ...current,
+      combo: 0,
+      missed: current.missed + 1,
+      lastGain: 0,
+    };
+    runRef.current = next;
+    setRun(next);
+  }, []);
+
+  const onChallengeComplete = useCallback(() => {
+    const latest = runRef.current;
+    if (!latest) {
+      return;
+    }
+    window.clearTimeout(completeTimerRef.current);
+    completeTimerRef.current = window.setTimeout(() => {
+      const stored = loadSave();
+      stored.levelScores[latest.level.id] = latest.credits;
+      stored.cleared[latest.level.id] = true;
+      persist(stored);
+      clearRun();
+      setScreen("complete");
+    }, MEANING_TOAST_MS);
+  }, [persist]);
+
   useEffect(() => {
-    if (screen !== "playing") {
+    if (screen !== "playing" || runRef.current?.level.mode === "challenge") {
       return;
     }
     let frame = 0;
@@ -382,10 +447,14 @@ export function TypingGame() {
     if (!run || screen !== "playing" || run.status !== "playing") {
       return;
     }
+    if (run.level.mode === "challenge") {
+      setRun({ ...run, typed: value });
+      return;
+    }
     const nextMatch = matchTyped(value, prompt);
     const clean = run.clean && !nextMatch.hasError;
     setRun({ ...run, typed: value, clean });
-    if (nextMatch.done) {
+    if (nextMatch.done || isExactAnswer(value, prompt)) {
       finishQuestion("caught");
     }
   };
@@ -415,12 +484,21 @@ export function TypingGame() {
     return null;
   }
 
-  const questionNo = Math.min(run.index + 1, run.prompts.length);
+  const isChallenge = run.level.mode === "challenge";
+  const questionNo = isChallenge
+    ? Math.min(run.caught + run.missed, run.prompts.length)
+    : Math.min(run.index + 1, run.prompts.length);
   const questionTotal = run.prompts.length;
-  const progressPct = ((run.index + (run.status === "playing" ? 0 : 1)) / questionTotal) * 100;
-  const urgent = screen === "playing" && run.status === "playing" && run.progress >= 0.72;
+  const progressPct = isChallenge
+    ? ((run.caught + run.missed) / questionTotal) * 100
+    : ((run.index + (run.status === "playing" ? 0 : 1)) / questionTotal) * 100;
+  const urgent = isChallenge
+    ? challengeUrgent
+    : screen === "playing" && run.status === "playing" && run.progress >= 0.72;
   const finishOffset = compact ? "bottom-[3.1rem]" : "bottom-[4.75rem]";
   const shellHeight = viewportFit.height || undefined;
+  const narrow = compact || (viewportFit.width > 0 && viewportFit.width < 740);
+  const inputError = !isChallenge && match.hasError;
 
   return (
     <div
@@ -437,7 +515,8 @@ export function TypingGame() {
       <SiteFrame fill className="h-full">
         <div
           className={cn(
-            "mx-auto flex h-full w-full max-w-3xl flex-col px-4",
+            "mx-auto flex h-full w-full flex-col px-4",
+            isChallenge ? "max-w-4xl" : "max-w-3xl",
             compact ? "py-1.5" : "py-4 sm:py-6",
             shake && "screen-shake"
           )}
@@ -464,7 +543,9 @@ export function TypingGame() {
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
-                第 {questionNo} / {questionTotal} 題
+                {isChallenge
+                  ? `${questionNo} / ${questionTotal}`
+                  : `第 ${questionNo} / ${questionTotal} 題`}
               </p>
               <Button
                 variant="ghost"
@@ -494,11 +575,13 @@ export function TypingGame() {
 
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)] sm:rounded-[1.6rem]">
             <div className="pointer-events-none absolute inset-x-8 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.14),transparent)]" />
-            <div className="pointer-events-none lane-glow absolute inset-y-0 left-1/2 w-24 -translate-x-1/2 sm:w-36" />
+            {!isChallenge ? (
+              <div className="pointer-events-none lane-glow absolute inset-y-0 left-1/2 w-24 -translate-x-1/2 sm:w-36" />
+            ) : null}
 
             <div className="relative h-full min-h-0">
               <div className={cn("absolute inset-x-0 top-0", finishOffset)}>
-                {screen === "playing" ? (
+                {screen === "playing" && !isChallenge ? (
                   <FallingCoin
                     progress={run.progress}
                     spinning={run.status === "playing"}
@@ -509,8 +592,32 @@ export function TypingGame() {
                   />
                 ) : null}
 
-                <div className="absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
-                  {screen === "countdown" ? (
+                {screen === "playing" && isChallenge ? (
+                  <ChallengeField
+                    level={run.level}
+                    prompts={run.prompts}
+                    playing={run.status === "playing"}
+                    typed={run.typed}
+                    compact={compact}
+                    narrow={narrow}
+                    onCatch={onChallengeCatch}
+                    onMiss={onChallengeMiss}
+                    onUrgent={setChallengeUrgent}
+                    onComplete={onChallengeComplete}
+                    onConsumeTyped={() => {
+                      const current = runRef.current;
+                      if (!current) {
+                        return;
+                      }
+                      const cleared = { ...current, typed: "" };
+                      runRef.current = cleared;
+                      setRun(cleared);
+                    }}
+                  />
+                ) : null}
+
+                {screen === "countdown" ? (
+                  <div className="absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
                     <div className="text-center">
                       <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
                         即將開始 · 無法暫停
@@ -524,18 +631,24 @@ export function TypingGame() {
                         {count > 0 ? count : "GO"}
                       </p>
                       {!compact ? (
-                        <p className="mt-3 text-sm text-[#cbb892]">倒數結束後，直接打出中央的英文</p>
+                        <p className="mt-3 text-sm text-[#cbb892]">
+                          {isChallenge
+                            ? "倒數結束後，打出畫面上任一顆金幣的英文"
+                            : "倒數結束後，直接打出中央的英文"}
+                        </p>
                       ) : null}
                     </div>
-                  ) : (
+                  </div>
+                ) : isChallenge ? null : (
+                  <div className="absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
                     <PromptCard
                       prompt={prompt}
                       typed={run.typed}
                       status={run.status}
                       compact={compact}
                     />
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {meaningToast ? (
@@ -597,12 +710,18 @@ export function TypingGame() {
                 onChange={(event) => onTyped(event.target.value)}
                 onPaste={(event) => event.preventDefault()}
                 onFocus={() => window.scrollTo(0, 0)}
-                placeholder={screen === "playing" ? "在終點線前打完英文…" : "倒數結束後開始輸入"}
+                placeholder={
+                  screen === "playing"
+                    ? isChallenge
+                      ? "打出任一顆金幣上的英文…"
+                      : "在終點線前打完英文…"
+                    : "倒數結束後開始輸入"
+                }
                 aria-label="英文輸入"
                 className={cn(
                   "game-type-input w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
                   compact ? "h-11" : "h-12 sm:h-14",
-                  match.hasError && "border-rose-400/60"
+                  inputError && "border-rose-400/60"
                 )}
               />
             </form>
