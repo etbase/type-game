@@ -334,11 +334,31 @@
 
 .gameplay-shell.split-play {
   overflow: hidden;
+  --finish-gap: 2.85rem;
 }
 
 .gameplay-shell.stack-play {
   overflow-x: hidden;
   overflow-y: auto;
+  --finish-gap: 2.25rem;
+}
+
+.playfield-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.coin-travel {
+  position: absolute;
+  inset: 0.35rem 0 var(--finish-gap, 2.25rem);
+}
+
+.finish-line {
+  position: absolute;
+  right: 0;
+  bottom: var(--finish-gap, 2.25rem);
+  left: 0;
+  z-index: 40;
 }
 
 .coin-lane {
@@ -416,6 +436,7 @@
 
 .game-coin-stack {
   height: var(--coin-size, 5.75rem);
+  width: var(--coin-size, 5.75rem);
 }
 
 .labeled-coin-stack {

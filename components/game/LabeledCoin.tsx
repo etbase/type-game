@@ -39,7 +39,7 @@ export function LabeledCoin({
       className="pointer-events-none absolute z-20 -translate-x-1/2"
       style={{
         left: `${x}%`,
-        top: `${8 + Math.min(1, progress) * 92}%`,
+        top: `${10 + Math.min(1, progress) * 80}%`,
         transform: "translate(-50%, -50%)",
         opacity: status === "missed" ? 0.28 : 1,
       }}

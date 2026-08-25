@@ -576,13 +576,6 @@ export function TypingGame() {
     : screen === "playing" && run.status === "playing" && run.progress >= 0.72;
   const density = viewportFit.density;
   const tight = density === "tight";
-  const finishOffset = splitLayout
-    ? "bottom-[1.7rem]"
-    : tight
-      ? "bottom-[2.6rem]"
-      : density === "compact"
-        ? "bottom-[3.4rem]"
-        : "bottom-[4.75rem]";
   const shellHeight = viewportFit.height || undefined;
   const narrow = viewportFit.width > 0 && viewportFit.width < 740;
   const inputError = !isChallenge && match.hasError;
@@ -607,18 +600,14 @@ export function TypingGame() {
         paddingBottom: splitLayout ? 0 : "env(safe-area-inset-bottom)",
       }}
     >
-      <SiteFrame
-        fill={splitLayout}
-        contain={!splitLayout}
-        plain={splitLayout}
-      >
+      <SiteFrame fill plain>
         <div
           className={cn(
-            "mx-auto flex w-full",
+            "mx-auto flex h-full min-h-0 w-full",
             splitLayout
-              ? "h-full min-h-0 max-w-none flex-row gap-1.5 px-1.5 py-1"
+              ? "max-w-none flex-row gap-1.5 px-1.5 py-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom))]"
               : cn(
-                  "min-h-full flex-col",
+                  "flex-col",
                   isChallenge ? "max-w-4xl" : "max-w-3xl"
                 ),
             shake && "screen-shake"
@@ -638,7 +627,7 @@ export function TypingGame() {
         >
           {!splitLayout ? (
             <>
-              <div className="mb-[var(--game-gap)] flex flex-wrap items-center justify-between gap-2">
+              <div className="mb-[var(--game-gap)] flex shrink-0 flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
                     Level {run.level.id} · {run.level.englishName}
@@ -669,7 +658,7 @@ export function TypingGame() {
                   </Button>
                 </div>
               </div>
-              <div className="mb-[var(--game-gap)] h-1.5 overflow-hidden rounded-full bg-black/40">
+              <div className="mb-[var(--game-gap)] h-1.5 shrink-0 overflow-hidden rounded-full bg-black/40">
                 <div
                   className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
                   style={{ width: `${Math.min(100, progressPct)}%` }}
@@ -701,8 +690,8 @@ export function TypingGame() {
               />
             ) : null}
 
-            <div className="relative h-full min-h-0">
-              <div className={cn("absolute inset-x-0 top-0", finishOffset)}>
+            <div className="playfield-stage">
+              <div className="coin-travel">
                 {screen === "playing" && !isChallenge ? (
                   <FallingCoin
                     progress={run.progress}
@@ -785,18 +774,19 @@ export function TypingGame() {
                 />
               ) : null}
 
-              <div className={cn("absolute inset-x-0 z-40", finishOffset)}>
-                <div className={cn("relative", splitLayout ? "mx-1" : "mx-6")}>
+              <div className="finish-line" data-finish-line="true">
+                <div className={cn("relative w-full", splitLayout ? "px-1" : "px-6")}>
                   <div
                     className={cn(
-                      "h-[3px] rounded-full bg-[linear-gradient(90deg,transparent,#f0d48a,transparent)] shadow-[0_0_16px_rgba(240,212,138,0.55)]",
-                      urgent && "finish-urgent bg-[linear-gradient(90deg,transparent,#ff8a6a,transparent)]"
+                      "rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8,#c4922e)] shadow-[0_0_18px_rgba(240,212,138,0.7)]",
+                      splitLayout ? "h-1" : "h-1",
+                      urgent && "finish-urgent bg-[linear-gradient(90deg,#ff8a6a,#ffd0a8,#ff8a6a)]"
                     )}
                   />
                   <div
                     className={cn(
-                      "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ead08a]/50 bg-[#1a140c] text-[10px] tracking-[0.32em] text-[#ffe9a8] uppercase",
-                      splitLayout ? "px-1.5 py-0.5 tracking-[0.18em]" : "px-3 py-0.5",
+                      "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-[#ead08a]/50 bg-[#1a140c] text-[10px] text-[#ffe9a8] uppercase",
+                      splitLayout ? "px-1.5 py-0.5 tracking-[0.12em]" : "px-3 py-0.5 tracking-[0.32em]",
                       urgent && "border-rose-300/60 text-rose-100"
                     )}
                   >
@@ -810,7 +800,7 @@ export function TypingGame() {
           <div
             className={cn(
               splitLayout
-                ? "flex h-full min-h-0 w-[55%] min-w-0 flex-col"
+                ? "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                 : "mt-[var(--game-gap)] shrink-0 space-y-[var(--game-gap)]"
             )}
           >
@@ -904,7 +894,7 @@ export function TypingGame() {
                 aria-label="英文輸入"
                 className={cn(
                   "game-type-input w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
-                  splitLayout ? "h-11" : "h-[var(--input-h)]",
+                  splitLayout ? "h-10" : "h-[var(--input-h)]",
                   inputError && "border-rose-400/60"
                 )}
               />

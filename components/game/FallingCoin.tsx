@@ -27,7 +27,7 @@ export function FallingCoin({
   const frameIndex = ((rawIndex % frameCount) + frameCount) % frameCount;
   const src = caught
     ? asset(COIN_SPARKLE)
-    : spinning
+    : spinning && !split && !compact
       ? asset(COIN_SPIN_FRAMES[frameIndex] ?? COIN_FRONT)
       : asset(COIN_FRONT);
 
@@ -35,7 +35,7 @@ export function FallingCoin({
     <div
       className="pointer-events-none absolute left-1/2 z-20 -translate-x-1/2"
       style={{
-        top: `calc(${progress * 100}% - 12px)`,
+        top: `${12 + Math.min(1, progress) * 76}%`,
         transform: `translate(-50%, -50%) ${missed ? "rotate(18deg)" : ""}`,
         opacity: missed ? 0.35 : 1,
         filter: missed ? "grayscale(0.4) brightness(0.7)" : undefined,
@@ -50,8 +50,8 @@ export function FallingCoin({
           width={110}
           height={110}
           className={cn(
-            "relative w-auto select-none drop-shadow-[0_18px_24px_rgba(0,0,0,0.55)]",
-            split ? "h-[48px]" : compact ? "h-[58px]" : "game-coin-stack"
+            "relative select-none object-contain drop-shadow-[0_18px_24px_rgba(0,0,0,0.55)]",
+            split ? "h-[52px] w-[52px]" : compact ? "h-[64px] w-[64px]" : "game-coin-stack"
           )}
           draggable={false}
         />
