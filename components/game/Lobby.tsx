@@ -77,34 +77,6 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
           </div>
         ) : null}
 
-        <section>
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <div>
-              <p className="text-[11px] tracking-[0.32em] text-[#d7b56a] uppercase">How to play</p>
-              <h2 className="font-display mt-1 text-2xl text-[#f7e7c2]">第一次來怎麼玩</h2>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {HOW_TO.map((step, index) => (
-              <div
-                key={step.title}
-                className="flex gap-4 rounded-2xl border border-[rgba(232,196,110,0.16)] bg-[rgba(12,16,26,0.72)] px-4 py-4"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#ead08a]/35 bg-[#2a1f10] font-mono text-sm text-[#ffe9a8]">
-                  {index + 1}
-                </div>
-                <div>
-                  <p className="flex items-center gap-2 font-medium text-[#f7e7c2]">
-                    <step.icon className="size-4 text-[#e7c56a]" />
-                    {step.title}
-                  </p>
-                  <p className="mt-1 text-sm leading-relaxed text-[#cbb892]">{step.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
         <section className="grid gap-4 md:grid-cols-2">
           {LEVELS.map((level, index) => {
             const locked = index > 0 && !save.cleared[LEVELS[index - 1].id];
@@ -162,6 +134,34 @@ export function Lobby({ save, abandonedLevel, onStart }: LobbyProps) {
               </Card>
             );
           })}
+        </section>
+
+        <section>
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[11px] tracking-[0.32em] text-[#d7b56a] uppercase">How to play</p>
+              <h2 className="font-display mt-1 text-2xl text-[#f7e7c2]">第一次來怎麼玩</h2>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {HOW_TO.map((step, index) => (
+              <div
+                key={step.title}
+                className="flex gap-4 rounded-2xl border border-[rgba(232,196,110,0.16)] bg-[rgba(12,16,26,0.72)] px-4 py-4"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#ead08a]/35 bg-[#2a1f10] font-mono text-sm text-[#ffe9a8]">
+                  {index + 1}
+                </div>
+                <div>
+                  <p className="flex items-center gap-2 font-medium text-[#f7e7c2]">
+                    <step.icon className="size-4 text-[#e7c56a]" />
+                    {step.title}
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-[#cbb892]">{step.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </SiteFrame>
