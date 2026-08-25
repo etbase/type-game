@@ -17,7 +17,10 @@ export type LiveCoin = {
   resolvedAt: number;
 };
 
-export function challengeMaxAlive(narrow: boolean, resolvedRatio: number) {
+export function challengeMaxAlive(narrow: boolean, resolvedRatio: number, split = false) {
+  if (split) {
+    return 2;
+  }
   if (narrow) {
     return resolvedRatio >= 0.42 ? 3 : 2;
   }
@@ -28,14 +31,20 @@ export function challengeSpawnGapMs(resolvedRatio: number) {
   return Math.round(1520 - resolvedRatio * 520);
 }
 
-export function challengeLaneCount(narrow: boolean) {
+export function challengeLaneCount(narrow: boolean, split = false) {
+  if (split) {
+    return 1;
+  }
   return narrow ? 3 : 4;
 }
 
 export function laneCenter(lane: number, laneCount: number) {
+  if (laneCount <= 1) {
+    return 50;
+  }
   const pad = 16;
   const span = 100 - pad * 2;
-  const step = laneCount <= 1 ? 0 : span / (laneCount - 1);
+  const step = span / (laneCount - 1);
   return pad + step * lane;
 }
 
@@ -84,11 +93,12 @@ export function makeLiveCoin(opts: {
   level: LevelDef;
   live: LiveCoin[];
   narrow: boolean;
+  split?: boolean;
   now: number;
 }): LiveCoin {
-  const laneCount = challengeLaneCount(opts.narrow);
+  const laneCount = challengeLaneCount(opts.narrow, opts.split);
   const lane = pickLane(opts.live, laneCount);
-  const jitter = (Math.random() - 0.5) * 7;
+  const jitter = opts.split ? 0 : (Math.random() - 0.5) * 7;
   return {
     id: opts.id,
     prompt: opts.prompt,

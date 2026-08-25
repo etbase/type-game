@@ -74,7 +74,9 @@ export function TypingGame() {
 
   const inPlay = screen === "playing" || screen === "countdown";
   const viewportFit = useVisualViewport(inPlay);
-  const compact = inPlay && viewportFit.keyboardOpen;
+  const [inputFocused, setInputFocused] = useState(false);
+  const splitLayout =
+    viewportFit.isPhone && screen === "playing" && (viewportFit.keyboardOpen || inputFocused);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const durationRef = useRef(0);
@@ -433,10 +435,17 @@ export function TypingGame() {
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
     body.style.overscrollBehavior = "none";
+    const pin = () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener("scroll", pin);
     return () => {
       html.style.overflow = prevHtmlOverflow;
       body.style.overflow = prevBodyOverflow;
       body.style.overscrollBehavior = prevBodyOverscroll;
+      window.removeEventListener("scroll", pin);
     };
   }, [inPlay]);
 
@@ -495,88 +504,101 @@ export function TypingGame() {
   const urgent = isChallenge
     ? challengeUrgent
     : screen === "playing" && run.status === "playing" && run.progress >= 0.72;
-  const finishOffset = compact ? "bottom-[3.1rem]" : "bottom-[4.75rem]";
+  const finishOffset = splitLayout ? "bottom-[1.7rem]" : "bottom-[4.75rem]";
   const shellHeight = viewportFit.height || undefined;
-  const narrow = compact || (viewportFit.width > 0 && viewportFit.width < 740);
+  const narrow = viewportFit.width > 0 && viewportFit.width < 740;
   const inputError = !isChallenge && match.hasError;
+  const pinViewport = () => {
+    window.scrollTo(0, 0);
+  };
 
   return (
     <div
-      className="gameplay-shell bg-[#0a0d14]"
+      className={cn("gameplay-shell bg-[#0a0d14]", splitLayout && "split-play")}
+      data-gameplay-layout={splitLayout ? "split" : "stack"}
       style={{
         position: "fixed",
         top: viewportFit.height ? viewportFit.offsetTop : 0,
         left: viewportFit.height ? viewportFit.offsetLeft : 0,
         width: viewportFit.width ? viewportFit.width : "100%",
         height: shellHeight ? `${shellHeight}px` : "100dvh",
-        paddingBottom: compact ? 0 : "env(safe-area-inset-bottom)",
+        paddingBottom: splitLayout ? 0 : "env(safe-area-inset-bottom)",
       }}
     >
       <SiteFrame fill className="h-full">
         <div
           className={cn(
-            "mx-auto flex h-full w-full flex-col px-4",
-            isChallenge ? "max-w-4xl" : "max-w-3xl",
-            compact ? "py-1.5" : "py-4 sm:py-6",
+            "mx-auto flex h-full min-h-0 w-full",
+            splitLayout
+              ? "max-w-none flex-row gap-1.5 px-1.5 py-1"
+              : cn(
+                  "flex-col px-4 py-4 sm:py-6",
+                  isChallenge ? "max-w-4xl" : "max-w-3xl"
+                ),
             shake && "screen-shake"
           )}
           onClick={() => inputRef.current?.focus({ preventScroll: true })}
         >
-          <div
-            className={cn(
-              "flex items-center justify-between gap-3",
-              compact ? "mb-1.5" : "mb-3"
-            )}
-          >
-            <div className="min-w-0">
-              <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
-                Level {run.level.id} · {run.level.englishName}
-              </p>
-              <h1
-                className={cn(
-                  "font-display text-[#f7e7c2]",
-                  compact ? "text-base" : "text-xl sm:text-2xl"
-                )}
-              >
-                {run.level.name}
-              </h1>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
-                {isChallenge
-                  ? `${questionNo} / ${questionTotal}`
-                  : `第 ${questionNo} / ${questionTotal} 題`}
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  abandonLevel();
-                }}
-              >
-                放棄本關
-              </Button>
-            </div>
-          </div>
+          {!splitLayout ? (
+            <>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
+                    Level {run.level.id} · {run.level.englishName}
+                  </p>
+                  <h1 className="font-display text-xl text-[#f7e7c2] sm:text-2xl">
+                    {run.level.name}
+                  </h1>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
+                    {isChallenge
+                      ? `${questionNo} / ${questionTotal}`
+                      : `第 ${questionNo} / ${questionTotal} 題`}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      abandonLevel();
+                    }}
+                  >
+                    放棄本關
+                  </Button>
+                </div>
+              </div>
+              <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-black/40">
+                <div
+                  className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
+                  style={{ width: `${Math.min(100, progressPct)}%` }}
+                />
+              </div>
+            </>
+          ) : null}
 
           <div
             className={cn(
-              "overflow-hidden rounded-full bg-black/40",
-              compact ? "mb-1.5 h-1" : "mb-3 h-1.5"
+              "relative min-h-0 overflow-hidden border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)]",
+              splitLayout
+                ? "coin-lane h-full w-[42%] shrink-0 rounded-xl"
+                : "flex-1 rounded-[1.25rem] sm:rounded-[1.6rem]"
             )}
           >
             <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
-              style={{ width: `${Math.min(100, progressPct)}%` }}
+              className={cn(
+                "pointer-events-none absolute top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.14),transparent)]",
+                splitLayout ? "inset-x-0" : "inset-x-8"
+              )}
             />
-          </div>
-
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)] sm:rounded-[1.6rem]">
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.14),transparent)]" />
             {!isChallenge ? (
-              <div className="pointer-events-none lane-glow absolute inset-y-0 left-1/2 w-24 -translate-x-1/2 sm:w-36" />
+              <div
+                className={cn(
+                  "pointer-events-none lane-glow absolute inset-y-0 left-1/2 -translate-x-1/2",
+                  splitLayout ? "w-10" : "w-24 sm:w-36"
+                )}
+              />
             ) : null}
 
             <div className="relative h-full min-h-0">
@@ -588,7 +610,7 @@ export function TypingGame() {
                     caught={run.status === "caught"}
                     missed={run.status === "missed"}
                     elapsedMs={run.elapsedMs}
-                    compact={compact}
+                    split={splitLayout}
                   />
                 ) : null}
 
@@ -598,8 +620,9 @@ export function TypingGame() {
                     prompts={run.prompts}
                     playing={run.status === "playing"}
                     typed={run.typed}
-                    compact={compact}
+                    compact={splitLayout}
                     narrow={narrow}
+                    split={splitLayout}
                     onCatch={onChallengeCatch}
                     onMiss={onChallengeMiss}
                     onUrgent={setChallengeUrgent}
@@ -622,36 +645,24 @@ export function TypingGame() {
                       <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
                         即將開始 · 無法暫停
                       </p>
-                      <p
-                        className={cn(
-                          "font-display text-[#ffe9a8]",
-                          compact ? "mt-1 text-5xl" : "mt-2 text-7xl"
-                        )}
-                      >
+                      <p className="font-display mt-2 text-7xl text-[#ffe9a8]">
                         {count > 0 ? count : "GO"}
                       </p>
-                      {!compact ? (
-                        <p className="mt-3 text-sm text-[#cbb892]">
-                          {isChallenge
-                            ? "倒數結束後，打出畫面上任一顆金幣的英文"
-                            : "倒數結束後，直接打出中央的英文"}
-                        </p>
-                      ) : null}
+                      <p className="mt-3 text-sm text-[#cbb892]">
+                        {isChallenge
+                          ? "倒數結束後，打出畫面上任一顆金幣的英文"
+                          : "倒數結束後，直接打出中央的英文"}
+                      </p>
                     </div>
                   </div>
-                ) : isChallenge ? null : (
+                ) : splitLayout || isChallenge ? null : (
                   <div className="absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
-                    <PromptCard
-                      prompt={prompt}
-                      typed={run.typed}
-                      status={run.status}
-                      compact={compact}
-                    />
+                    <PromptCard prompt={prompt} typed={run.typed} status={run.status} />
                   </div>
                 )}
               </div>
 
-              {meaningToast ? (
+              {!splitLayout && meaningToast ? (
                 <MeaningToast
                   word={meaningToast.word}
                   meaning={meaningToast.meaning}
@@ -660,7 +671,7 @@ export function TypingGame() {
               ) : null}
 
               <div className={cn("absolute inset-x-0 z-40", finishOffset)}>
-                <div className={cn("relative", compact ? "mx-4" : "mx-6")}>
+                <div className={cn("relative", splitLayout ? "mx-1" : "mx-6")}>
                   <div
                     className={cn(
                       "h-[3px] rounded-full bg-[linear-gradient(90deg,transparent,#f0d48a,transparent)] shadow-[0_0_16px_rgba(240,212,138,0.55)]",
@@ -669,7 +680,8 @@ export function TypingGame() {
                   />
                   <div
                     className={cn(
-                      "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ead08a]/50 bg-[#1a140c] px-3 py-0.5 text-[10px] tracking-[0.32em] text-[#ffe9a8] uppercase",
+                      "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ead08a]/50 bg-[#1a140c] text-[10px] tracking-[0.32em] text-[#ffe9a8] uppercase",
+                      splitLayout ? "px-1.5 py-0.5 tracking-[0.18em]" : "px-3 py-0.5",
                       urgent && "border-rose-300/60 text-rose-100"
                     )}
                   >
@@ -680,18 +692,77 @@ export function TypingGame() {
             </div>
           </div>
 
-          <div className={cn("shrink-0", compact ? "mt-1.5 space-y-1" : "mt-4 space-y-3")}>
-            {compact ? (
-              <CreditsBar
-                credits={run.credits}
-                combo={run.combo}
-                flash={flash}
-                lastGain={run.lastGain}
-                compact
-              />
+          <div
+            className={cn(
+              splitLayout
+                ? "flex h-full min-h-0 min-w-0 flex-1 flex-col"
+                : "mt-4 shrink-0 space-y-3"
+            )}
+          >
+            {splitLayout ? (
+              <>
+                <div className="flex shrink-0 items-center justify-between gap-1">
+                  <p className="min-w-0 truncate text-[10px] tracking-[0.18em] text-[#d7b56a] uppercase">
+                    Lv.{run.level.id} · {questionNo}/{questionTotal}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 px-2 text-[11px] text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      abandonLevel();
+                    }}
+                  >
+                    放棄
+                  </Button>
+                </div>
+                <div className="mb-1 h-1 shrink-0 overflow-hidden rounded-full bg-black/40">
+                  <div
+                    className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
+                    style={{ width: `${Math.min(100, progressPct)}%` }}
+                  />
+                </div>
+                {isChallenge ? (
+                  <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-[rgba(232,196,110,0.22)] bg-[rgba(12,16,28,0.72)] px-2 py-2 text-center">
+                    <p className="mb-1.5 text-[10px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
+                      Type this
+                    </p>
+                    <p className="prompt-rail-word text-[0.95rem] leading-snug font-semibold text-[#f6ead2]">
+                      打出金幣上的英文
+                    </p>
+                  </div>
+                ) : (
+                  <PromptCard
+                    prompt={prompt}
+                    typed={run.typed}
+                    status={run.status}
+                    rail
+                  />
+                )}
+                {meaningToast ? (
+                  <MeaningToast
+                    word={meaningToast.word}
+                    meaning={meaningToast.meaning}
+                    toastKey={meaningToast.key}
+                    inline
+                  />
+                ) : null}
+                <div className="shrink-0 py-1">
+                  <CreditsBar
+                    credits={run.credits}
+                    combo={run.combo}
+                    flash={flash}
+                    lastGain={run.lastGain}
+                    stacked
+                  />
+                </div>
+              </>
             ) : null}
+
             <form
               autoComplete="off"
+              className={splitLayout ? "mt-auto shrink-0" : undefined}
               onSubmit={(event) => event.preventDefault()}
               onClick={(event) => event.stopPropagation()}
             >
@@ -709,7 +780,13 @@ export function TypingGame() {
                 disabled={screen !== "playing" || run.status !== "playing"}
                 onChange={(event) => onTyped(event.target.value)}
                 onPaste={(event) => event.preventDefault()}
-                onFocus={() => window.scrollTo(0, 0)}
+                onFocus={() => {
+                  setInputFocused(true);
+                  pinViewport();
+                  window.setTimeout(pinViewport, 50);
+                  window.setTimeout(pinViewport, 280);
+                }}
+                onBlur={() => setInputFocused(false)}
                 placeholder={
                   screen === "playing"
                     ? isChallenge
@@ -720,12 +797,13 @@ export function TypingGame() {
                 aria-label="英文輸入"
                 className={cn(
                   "game-type-input w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
-                  compact ? "h-11" : "h-12 sm:h-14",
+                  splitLayout ? "h-11" : "h-12 sm:h-14",
                   inputError && "border-rose-400/60"
                 )}
               />
             </form>
-            {!compact ? (
+
+            {!splitLayout ? (
               <CreditsBar
                 credits={run.credits}
                 combo={run.combo}
@@ -733,7 +811,7 @@ export function TypingGame() {
                 lastGain={run.lastGain}
               />
             ) : null}
-            {!compact && screen !== "playing" ? (
+            {!splitLayout && screen !== "playing" ? (
               <p className="text-center text-[11px] tracking-wide text-[#9e8d6c]">
                 放棄本關會立刻把這一關的分數歸零，且遊戲開始後沒有暫停。
               </p>

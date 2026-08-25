@@ -8,9 +8,48 @@ export type ViewportFit = {
   offsetLeft: number;
   width: number;
   keyboardOpen: boolean;
+  isPhone: boolean;
 };
 
 const KEYBOARD_DELTA = 120;
+const PHONE_MAX_WIDTH = 560;
+
+function readViewport(baseline: number): ViewportFit & { nextBaseline: number } {
+  if (typeof window === "undefined") {
+    return {
+      height: 0,
+      offsetTop: 0,
+      offsetLeft: 0,
+      width: 0,
+      keyboardOpen: false,
+      isPhone: false,
+      nextBaseline: baseline,
+    };
+  }
+
+  const vv = window.visualViewport;
+  const height = Math.round(vv?.height ?? window.innerHeight);
+  const width = Math.round(vv?.width ?? window.innerWidth);
+  const offsetTop = Math.round(vv?.offsetTop ?? 0);
+  const offsetLeft = Math.round(vv?.offsetLeft ?? 0);
+  const isPhone = window.innerWidth < PHONE_MAX_WIDTH;
+  let nextBaseline = baseline;
+
+  if (nextBaseline === 0 || height > nextBaseline + 40) {
+    nextBaseline = height;
+  }
+
+  const keyboardOpen = isPhone && nextBaseline - height >= KEYBOARD_DELTA;
+  return {
+    height,
+    offsetTop,
+    offsetLeft,
+    width,
+    keyboardOpen,
+    isPhone,
+    nextBaseline,
+  };
+}
 
 export function useVisualViewport(active: boolean): ViewportFit {
   const baselineRef = useRef(0);
@@ -21,6 +60,7 @@ export function useVisualViewport(active: boolean): ViewportFit {
     offsetLeft: 0,
     width: 0,
     keyboardOpen: false,
+    isPhone: false,
   });
 
   useEffect(() => {
@@ -29,24 +69,22 @@ export function useVisualViewport(active: boolean): ViewportFit {
     }
 
     const update = () => {
-      const vv = window.visualViewport;
-      const height = Math.round(vv?.height ?? window.innerHeight);
-      const width = Math.round(vv?.width ?? window.innerWidth);
-      const offsetTop = Math.round(vv?.offsetTop ?? 0);
-      const offsetLeft = Math.round(vv?.offsetLeft ?? 0);
-      const orientation = width > height ? "l" : "p";
-
+      const orientation = window.matchMedia("(orientation: portrait)").matches ? "p" : "l";
       if (orientation !== orientationRef.current) {
         orientationRef.current = orientation;
-        baselineRef.current = height;
-      } else if (height > baselineRef.current + 40) {
-        baselineRef.current = height;
-      } else if (baselineRef.current === 0) {
-        baselineRef.current = height;
+        baselineRef.current = Math.round(window.innerHeight);
       }
 
-      const keyboardOpen = baselineRef.current - height >= KEYBOARD_DELTA;
-      setFit({ height, offsetTop, offsetLeft, width, keyboardOpen });
+      const next = readViewport(baselineRef.current);
+      baselineRef.current = next.nextBaseline;
+      setFit({
+        height: next.height,
+        offsetTop: next.offsetTop,
+        offsetLeft: next.offsetLeft,
+        width: next.width,
+        keyboardOpen: next.keyboardOpen,
+        isPhone: next.isPhone,
+      });
     };
 
     update();

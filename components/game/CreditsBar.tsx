@@ -9,6 +9,7 @@ type CreditsBarProps = {
   flash?: "up" | "zero" | null;
   lastGain?: number;
   compact?: boolean;
+  stacked?: boolean;
 };
 
 export function CreditsBar({
@@ -17,7 +18,34 @@ export function CreditsBar({
   flash,
   lastGain = 0,
   compact = false,
+  stacked = false,
 }: CreditsBarProps) {
+  if (stacked) {
+    return (
+      <div
+        className={cn(
+          "grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 rounded-lg bg-black/30 px-2 py-1.5 text-[11px] leading-none",
+          flash === "up" && "credits-up",
+          flash === "zero" && "credits-zero"
+        )}
+      >
+        <span className="tracking-[0.16em] text-[#d7b56a] uppercase">Credits</span>
+        <span className="font-mono text-right font-semibold text-[#ffe9a8] tabular-nums">
+          {credits.toLocaleString("en-US")}
+          {flash === "up" && lastGain > 0 ? ` +${lastGain}` : ""}
+        </span>
+        <span className="tracking-[0.16em] text-[#b9a078] uppercase">Combo</span>
+        <span
+          className={cn(
+            "font-mono text-right font-semibold tabular-nums",
+            combo > 1 ? "text-[#ffe08a]" : "text-[#8b7a5c]"
+          )}
+        >
+          x{combo}
+        </span>
+      </div>
+    );
+  }
   if (compact) {
     return (
       <div

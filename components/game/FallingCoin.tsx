@@ -10,6 +10,7 @@ type FallingCoinProps = {
   missed: boolean;
   elapsedMs: number;
   compact?: boolean;
+  split?: boolean;
 };
 
 export function FallingCoin({
@@ -19,6 +20,7 @@ export function FallingCoin({
   missed,
   elapsedMs,
   compact = false,
+  split = false,
 }: FallingCoinProps) {
   const frameCount = COIN_SPIN_FRAMES.length;
   const rawIndex = Math.floor(Math.max(0, elapsedMs || 0) / 95);
@@ -49,7 +51,7 @@ export function FallingCoin({
           height={110}
           className={cn(
             "relative w-auto select-none drop-shadow-[0_18px_24px_rgba(0,0,0,0.55)]",
-            compact ? "h-[58px]" : "h-[92px] sm:h-[110px]"
+            split ? "h-[48px]" : compact ? "h-[58px]" : "h-[92px] sm:h-[110px]"
           )}
           draggable={false}
         />

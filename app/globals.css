@@ -329,6 +329,16 @@
 .gameplay-shell {
   overflow: hidden;
   overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+.coin-lane {
+  padding-inline: 0;
+}
+
+.prompt-rail-word {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 @media (prefers-reduced-motion: reduce) {

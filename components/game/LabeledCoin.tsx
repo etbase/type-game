@@ -18,6 +18,7 @@ type LabeledCoinProps = {
   progress: number;
   status: "falling" | "shattered" | "missed";
   compact?: boolean;
+  split?: boolean;
   hinted?: boolean;
 };
 
@@ -27,6 +28,7 @@ export function LabeledCoin({
   progress,
   status,
   compact = false,
+  split = false,
   hinted = false,
 }: LabeledCoinProps) {
   const long = word.length > 10;
@@ -43,7 +45,7 @@ export function LabeledCoin({
       }}
     >
       {status === "shattered" ? (
-        <div className="relative h-[72px] w-[72px] sm:h-[84px] sm:w-[84px]">
+        <div className={cn("relative", split ? "h-[52px] w-[52px]" : "h-[72px] w-[72px] sm:h-[84px] sm:w-[84px]")}>
           {SHARDS.map((shard, index) => (
             <div
               key={index}
@@ -72,21 +74,26 @@ export function LabeledCoin({
             height={84}
             className={cn(
               "relative select-none drop-shadow-[0_12px_16px_rgba(0,0,0,0.5)]",
-              compact ? "h-[52px] w-[52px]" : "h-[68px] w-[68px] sm:h-[84px] sm:w-[84px]"
+              split
+                ? "h-[44px] w-[44px]"
+                : compact
+                  ? "h-[52px] w-[52px]"
+                  : "h-[68px] w-[68px] sm:h-[84px] sm:w-[84px]"
             )}
             draggable={false}
           />
           <div
             className={cn(
-              "relative z-10 mt-0.5 max-w-[min(78vw,16.5rem)] rounded-full border border-[#ead08a]/45 bg-[rgba(18,14,8,0.9)] px-2.5 py-0.5 text-center shadow-[0_6px_14px_rgba(0,0,0,0.35)]",
-              long && "rounded-2xl px-2.5 py-1"
+              "relative z-10 mt-0.5 rounded-full border border-[#ead08a]/45 bg-[rgba(18,14,8,0.9)] text-center shadow-[0_6px_14px_rgba(0,0,0,0.35)]",
+              split ? "max-w-[9.5rem] px-1.5 py-0.5" : "max-w-[min(78vw,16.5rem)] px-2.5 py-0.5",
+              long && "rounded-2xl px-2 py-1"
             )}
           >
             <p
               className={cn(
                 "font-mono leading-tight font-semibold tracking-wide text-[#ffe9a8]",
-                long ? "break-words" : "whitespace-nowrap",
-                compact || long ? "text-[11px] sm:text-xs" : "text-xs sm:text-sm"
+                long || split ? "break-words" : "whitespace-nowrap",
+                split || compact || long ? "text-[10px] sm:text-xs" : "text-xs sm:text-sm"
               )}
             >
               {word}

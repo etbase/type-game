@@ -21,6 +21,7 @@ type ChallengeFieldProps = {
   typed: string;
   compact: boolean;
   narrow: boolean;
+  split?: boolean;
   onCatch: (item: PromptItem, remaining: number) => void;
   onMiss: (item: PromptItem) => void;
   onUrgent: (urgent: boolean) => void;
@@ -35,6 +36,7 @@ export function ChallengeField({
   typed,
   compact,
   narrow,
+  split = false,
   onCatch,
   onMiss,
   onUrgent,
@@ -80,7 +82,7 @@ export function ChallengeField({
       let next = coinsRef.current;
       const total = prompts.length;
       const resolvedRatio = total > 0 ? resolvedRef.current / total : 0;
-      const maxAlive = challengeMaxAlive(narrow, resolvedRatio);
+      const maxAlive = challengeMaxAlive(narrow, resolvedRatio, split);
       const gap = challengeSpawnGapMs(resolvedRatio);
       const falling = next.filter((coin) => coin.status === "falling");
 
@@ -100,6 +102,7 @@ export function ChallengeField({
               level,
               live: falling,
               narrow,
+              split,
               now: time,
             }),
           ];
@@ -174,7 +177,7 @@ export function ChallengeField({
 
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
-  }, [playing, level, prompts, narrow]);
+  }, [playing, level, prompts, narrow, split]);
 
   const hint = normalizeAnswer(typed);
 
@@ -191,6 +194,7 @@ export function ChallengeField({
             progress={progress}
             status={coin.status}
             compact={compact}
+            split={split}
             hinted={
               coin.status === "falling" &&
               hint.length > 0 &&
