@@ -1,3 +1,4 @@
+import { parseRoundLog, type RoundEntry } from "@/lib/round-log";
 import type { LevelId } from "@/lib/levels";
 
 const SAVE_KEY = "gold-type-challenge-v1";
@@ -16,6 +17,7 @@ export type IncompleteSnapshot = {
   credits: number;
   bestCombo: number;
   total: number;
+  log: RoundEntry[];
 };
 
 const emptyScores = (): Record<LevelId, number> => ({
@@ -85,7 +87,10 @@ export function readIncomplete(): IncompleteSnapshot | null {
     if (parsed.levelId !== 1 && parsed.levelId !== 2 && parsed.levelId !== 3 && parsed.levelId !== 4) {
       return null;
     }
-    return parsed;
+    return {
+      ...parsed,
+      log: parseRoundLog(parsed.log),
+    };
   } catch {
     return null;
   }
@@ -115,6 +120,7 @@ export function snapshotFromRun(run: {
   credits: number;
   bestCombo: number;
   prompts: { length: number };
+  log: RoundEntry[];
 }): IncompleteSnapshot {
   return {
     levelId: run.level.id,
@@ -123,5 +129,6 @@ export function snapshotFromRun(run: {
     credits: run.credits,
     bestCombo: run.bestCombo,
     total: run.prompts.length,
+    log: run.log,
   };
 }

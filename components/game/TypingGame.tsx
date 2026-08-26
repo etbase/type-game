@@ -30,6 +30,7 @@ import {
   type SaveData,
 } from "@/lib/storage";
 import { isExactAnswer, matchTyped, scoreCatch } from "@/lib/typing";
+import { logPrompt, type RoundEntry } from "@/lib/round-log";
 import { cn } from "@/lib/utils";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -52,6 +53,7 @@ type RunState = {
   typed: string;
   clean: boolean;
   lastGain: number;
+  log: RoundEntry[];
 };
 
 const COUNTDOWN_SECONDS = 3;
@@ -113,6 +115,7 @@ export function TypingGame() {
       typed: "",
       clean: true,
       lastGain: 0,
+      log: leftover.log ?? [],
     });
     setIncomplete(true);
     setNewRecord(false);
@@ -187,6 +190,7 @@ export function TypingGame() {
       typed: "",
       clean: true,
       lastGain: 0,
+      log: [],
     };
     durationRef.current = fallDurationMs(prompts[0], level);
     startedAtRef.current = 0;
@@ -249,6 +253,11 @@ export function TypingGame() {
       let caught = current.caught;
       let missed = current.missed;
       let lastGain = 0;
+      const item = current.prompts[current.index];
+      if (!item?.word) {
+        return;
+      }
+      const log = logPrompt(current.log ?? [], item, kind === "caught", current.level.id);
 
       if (kind === "caught") {
         combo += 1;
@@ -263,7 +272,6 @@ export function TypingGame() {
         });
         credits += lastGain;
         setFlash("up");
-        const item = current.prompts[current.index];
         setMeaningToast({
           word: item.word,
           meaning: item.meaning,
@@ -285,6 +293,7 @@ export function TypingGame() {
         missed,
         status: kind,
         lastGain,
+        log,
       };
       runRef.current = nextRun;
       setRun(nextRun);
@@ -325,6 +334,7 @@ export function TypingGame() {
       caught: current.caught + 1,
       typed: "",
       lastGain,
+      log: logPrompt(current.log ?? [], item, true, current.level.id),
     };
     runRef.current = next;
     setRun(next);
@@ -336,7 +346,7 @@ export function TypingGame() {
     });
   }, []);
 
-  const onChallengeMiss = useCallback(() => {
+  const onChallengeMiss = useCallback((item: PromptItem) => {
     const current = runRef.current;
     if (!current) {
       return;
@@ -346,6 +356,7 @@ export function TypingGame() {
       combo: 0,
       missed: current.missed + 1,
       lastGain: 0,
+      log: logPrompt(current.log ?? [], item, false, current.level.id),
     };
     runRef.current = next;
     setRun(next);
@@ -463,7 +474,7 @@ export function TypingGame() {
       return;
     }
     writeIncomplete(snapshotFromRun(current));
-  }, [inPlay, run?.caught, run?.missed, run?.credits, run?.bestCombo, run?.level.id, run?.prompts.length]);
+  }, [inPlay, run?.caught, run?.missed, run?.credits, run?.bestCombo, run?.level.id, run?.prompts.length, run?.log.length]);
 
   useEffect(() => {
     if (!meaningToast) {
@@ -548,6 +559,7 @@ export function TypingGame() {
         }
         newRecord={newRecord}
         incomplete={incomplete}
+        log={run.log}
         onLobby={() => {
           clearIncomplete();
           setRun(null);
