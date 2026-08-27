@@ -71,13 +71,13 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
     ref
   ) {
     const match = matchTyped(typed, prompt);
-    const slots = Math.max(prompt.length, typed.length, 1);
+    const slots = Math.max(challenge ? typed.length : prompt.length, typed.length, 1);
     const fontSize = traceFontSize(Math.max(prompt.length, typed.length), rail, compact);
-    const minHeight = `${stackMinEm(Math.max(prompt.length, typed.length, 8))}em`;
-    const playing = status === "playing" && !disabled && reveal;
+    const minHeight = `${stackMinEm(Math.max(prompt.length, typed.length, 1))}em`;
+    const live = status !== "missed" && !disabled;
     const hint = status === "missed" ? "Missed" : challenge ? "Type a coin" : "Trace this";
-    const showPrompt = reveal && !challenge;
-    const showChallengeInk = reveal && challenge && typed.length > 0;
+    const showPrompt = !challenge;
+    const showChallengeInk = challenge && typed.length > 0;
 
     return (
       <div
@@ -98,19 +98,18 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
         <p className="trace-kicker mb-1.5 shrink-0 text-center text-[10px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
           {hint}
         </p>
-        <div className="trace-body relative min-h-0 flex-1" style={{ minHeight, height: minHeight }}>
+        <div className="trace-body relative min-h-0 flex-1" style={{ minHeight }}>
           <div
             className="trace-stack"
-            style={{ fontSize, minHeight, height: minHeight }}
-            data-prompt={showPrompt ? prompt : showChallengeInk ? typed : ""}
+            style={{ fontSize, minHeight }}
+            data-prompt={reveal ? (challenge ? typed : prompt) : ""}
           >
-            <span className="trace-blank" aria-hidden />
             {showPrompt ? (
               <span className="trace-letters">
                 {Array.from({ length: slots }, (_, index) => {
                   const reached = index < typed.length;
                   const ok = index < match.correctLen;
-                  const caret = playing && index === typed.length;
+                  const caret = live && index === typed.length;
                   return (
                     <span
                       key={`cell-${index}`}
@@ -134,8 +133,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
                   );
                 })}
               </span>
-            ) : null}
-            {showChallengeInk ? (
+            ) : showChallengeInk ? (
               <span className="trace-letters">
                 {typed.split("").map((char, index) => (
                   <span key={`ch-${index}`} className="trace-cell">
@@ -143,7 +141,15 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
                   </span>
                 ))}
               </span>
-            ) : null}
+            ) : (
+              <span className="trace-letters">
+                <span className={cn("trace-cell", live && "trace-caret")}>
+                  <span className="trace-ink-ch trace-empty" aria-hidden>
+                    {"\u00a0"}
+                  </span>
+                </span>
+              </span>
+            )}
           </div>
         </div>
         <input
@@ -177,7 +183,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
             金幣碰到終點線
           </p>
         ) : null}
-        {playing && !challenge && match.hasError ? (
+        {live && reveal && !challenge && match.hasError ? (
           <p className="trace-error-copy mt-1.5 shrink-0 text-center text-[11px] text-rose-300/90">
             打錯了，請修正後繼續
           </p>
