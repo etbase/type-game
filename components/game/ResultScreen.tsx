@@ -100,10 +100,10 @@ export function ResultScreen({
           )}
         </section>
 
-        <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row">
+        <div className="mt-8 flex w-full flex-col gap-4 sm:flex-row sm:gap-3">
           <Button
             size="lg"
-            className="h-11 flex-1 rounded-full border border-[#ead08a]/40 bg-[linear-gradient(180deg,#f0d48a,#c4922e)] text-[#2a1b07] hover:bg-[linear-gradient(180deg,#ffe6a8,#d7a33c)]"
+            className="h-12 min-h-12 flex-1 rounded-full border border-[#ead08a]/40 bg-[linear-gradient(180deg,#f0d48a,#c4922e)] px-5 py-3 text-base text-[#2a1b07] hover:bg-[linear-gradient(180deg,#ffe6a8,#d7a33c)] sm:h-12"
             onClick={onReplay}
           >
             再打一場
@@ -111,7 +111,7 @@ export function ResultScreen({
           <Button
             size="lg"
             variant="outline"
-            className="h-11 flex-1 rounded-full border-[rgba(232,196,110,0.35)] bg-transparent text-[#f7e7c2] hover:bg-white/5"
+            className="h-12 min-h-12 flex-1 rounded-full border-[rgba(232,196,110,0.35)] bg-transparent px-5 py-3 text-base text-[#f7e7c2] hover:bg-white/5 sm:h-12"
             onClick={onLobby}
           >
             回到大廳

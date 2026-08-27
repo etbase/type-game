@@ -12,6 +12,7 @@ type TracePadProps = {
   compact?: boolean;
   rail?: boolean;
   disabled?: boolean;
+  waiting?: boolean;
   placeholder?: string;
   onChange: (value: string) => void;
   onFocus?: () => void;
@@ -59,6 +60,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
       compact = false,
       rail = false,
       disabled = false,
+      waiting = false,
       placeholder,
       onChange,
       onFocus,
@@ -68,7 +70,14 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
     const match = matchTyped(typed, prompt);
     const slots = Math.max(prompt.length, typed.length, 1);
     const fontSize = traceFontSize(Math.max(prompt.length, typed.length), rail, compact);
-    const playing = status === "playing" && !disabled;
+    const playing = status === "playing" && !disabled && !waiting;
+    const hint = waiting
+      ? "點擊這裡開始打字"
+      : status === "missed"
+        ? "Missed"
+        : challenge
+          ? "Type a coin"
+          : "Trace this";
 
     return (
       <div
@@ -86,7 +95,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
         )}
       >
         <p className="trace-kicker mb-1.5 shrink-0 text-center text-[10px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
-          {status === "missed" ? "Missed" : challenge ? "Type a coin" : "Trace this"}
+          {hint}
         </p>
         <div className="relative min-h-0 flex-1">
           <div
@@ -96,7 +105,9 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
           >
             {challenge ? (
               typed.length === 0 ? (
-                <span className="trace-placeholder">{placeholder ?? "打出金幣上的英文"}</span>
+                <span className="trace-placeholder">
+                  {waiting ? "點擊這裡開始打字" : placeholder ?? "打出金幣上的英文"}
+                </span>
               ) : (
                 typed.split("").map((char, index) => (
                   <span key={`ch-${index}`} className="trace-cell">

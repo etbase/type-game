@@ -168,6 +168,9 @@ export function TypingGame() {
       };
       runRef.current = advanced;
       setRun(advanced);
+      window.requestAnimationFrame(() => {
+        inputRef.current?.focus({ preventScroll: true });
+      });
     },
     [persist]
   );
@@ -339,6 +342,9 @@ export function TypingGame() {
     runRef.current = next;
     setRun(next);
     setFlash("up");
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    });
     setMeaningToast({
       word: item.word,
       meaning: item.meaning,
@@ -452,10 +458,18 @@ export function TypingGame() {
   }, [screen]);
 
   useEffect(() => {
-    if (screen === "playing" && run?.status === "playing") {
-      inputRef.current?.focus({ preventScroll: viewportFit.isPhone });
+    if (!inPlay) {
+      return;
     }
-  }, [screen, run?.status, run?.index, viewportFit.isPhone]);
+    const node = inputRef.current;
+    if (!node || node.disabled) {
+      return;
+    }
+    if (document.activeElement === node) {
+      return;
+    }
+    node.focus({ preventScroll: true });
+  }, [inPlay, screen, run?.index]);
 
   useEffect(() => {
     if (!flash) {
@@ -595,7 +609,7 @@ export function TypingGame() {
   const pinViewport = () => {
     window.scrollTo(0, 0);
   };
-  const showOverlayPad = !isPhone && !isChallenge && screen === "playing";
+  const showOverlayPad = !isPhone && !isChallenge;
   const showBelowPad = isPhone || isChallenge;
 
   const tracePad = (
@@ -606,8 +620,8 @@ export function TypingGame() {
       status={run.status}
       challenge={isChallenge}
       compact={compactUi}
-      disabled={screen !== "playing" || run.status !== "playing"}
-      placeholder={isChallenge ? "打出金幣上的英文" : undefined}
+      waiting={screen === "countdown"}
+      placeholder="點擊這裡開始打字"
       onChange={onTyped}
       onFocus={() => {
         if (isPhone) {
@@ -744,7 +758,7 @@ export function TypingGame() {
                 ) : null}
 
                 {screen === "countdown" ? (
-                  <div className="absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
+                  <div className="pointer-events-none absolute inset-x-0 top-[6%] z-40 flex justify-center px-3 sm:px-4">
                     <div className="text-center">
                       <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
                         即將開始 · 無法暫停
@@ -755,16 +769,10 @@ export function TypingGame() {
                       >
                         {count > 0 ? count : "GO"}
                       </p>
-                      {!chromeTight ? (
-                        <p className="mt-3 text-sm text-[#cbb892]">
-                          {isChallenge
-                            ? "倒數結束後，打出畫面上任一顆金幣的英文"
-                            : "倒數結束後，在淡字上直接描寫英文"}
-                        </p>
-                      ) : null}
                     </div>
                   </div>
-                ) : showOverlayPad ? (
+                ) : null}
+                {showOverlayPad ? (
                   <div className="trace-overlay pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
                     <div className="pointer-events-auto w-full max-w-full">
                       {tracePad}
