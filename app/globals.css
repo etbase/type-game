@@ -308,7 +308,6 @@
 }
 
 .trace-stack,
-.trace-letters,
 .trace-cell,
 .trace-ghost-ch,
 .trace-ink-ch,
@@ -327,11 +326,6 @@
   line-height: 1.4;
   text-align: center;
   text-rendering: auto;
-}
-
-.trace-body,
-.trace-stack {
-  contain: layout style;
 }
 
 .trace-stack {
@@ -384,32 +378,19 @@
 }
 
 .trace-pad[data-trace-reveal="false"] .trace-ghost-ch,
-.trace-pad[data-trace-reveal="false"] .trace-ink-ch {
-  color: transparent !important;
-  -webkit-text-fill-color: transparent;
-  user-select: none;
-}
-
-.trace-letters {
-  position: relative;
-  z-index: 1;
-  max-width: 100%;
-  text-align: center;
+.trace-pad[data-trace-reveal="false"] .trace-ink-ch,
+.trace-pad[data-trace-reveal="false"] .trace-placeholder {
+  visibility: hidden;
 }
 
 .trace-caret {
   box-shadow: inset 0 -2px 0 rgba(255, 233, 168, 0.95);
   border-radius: 1px;
-  animation: trace-caret 1.1s ease-in-out infinite;
+  animation: trace-caret 1s step-end infinite;
 }
 
 @keyframes trace-caret {
-  0%,
-  38% {
-    box-shadow: inset 0 -2px 0 rgba(255, 233, 168, 0.95);
-  }
-  50%,
-  88% {
+  50% {
     box-shadow: inset 0 -2px 0 transparent;
   }
 }
@@ -439,7 +420,8 @@
 }
 
 .gameplay-shell.stack-play {
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   --finish-gap: 2.25rem;
 }
 
