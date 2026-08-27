@@ -39,7 +39,6 @@ export function ResultScreen({
 }: ResultScreenProps) {
   const accuracy = accuracyPct(caught, missed);
   const perfect = !incomplete && missed === 0 && caught > 0 && log.length > 0;
-  const missedWords = log.filter((entry) => !entry.correct);
 
   return (
     <SiteFrame>
@@ -96,24 +95,6 @@ export function ResultScreen({
             <ul className="mt-4 space-y-2">
               {log.map((entry, index) => (
                 <ReviewRow key={`${entry.word}-${index}`} entry={entry} />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="mt-8 w-full text-left">
-          <p className="text-[11px] tracking-[0.32em] text-[#d7b56a] uppercase">
-            Review Again
-          </p>
-          <h2 className="font-display mt-1 text-xl text-[#f7e7c2]">錯題複習</h2>
-          {log.length > 0 && missedWords.length === 0 ? (
-            <p className="mt-3 text-sm text-[#9ec9a8]">Perfect! No words to review.</p>
-          ) : missedWords.length === 0 ? (
-            <p className="mt-3 text-sm text-[#cbb892]">這一局還沒有需要複習的題目。</p>
-          ) : (
-            <ul className="mt-4 space-y-2">
-              {missedWords.map((entry, index) => (
-                <ReviewRow key={`miss-${entry.word}-${index}`} entry={entry} />
               ))}
             </ul>
           )}
