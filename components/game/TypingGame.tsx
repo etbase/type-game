@@ -33,7 +33,7 @@ import { isExactAnswer, matchTyped, scoreCatch } from "@/lib/typing";
 import { logPrompt, type RoundEntry } from "@/lib/round-log";
 import { cn } from "@/lib/utils";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type Screen = "lobby" | "countdown" | "playing" | "complete";
 type QuestionStatus = "playing" | "caught" | "missed";
@@ -80,7 +80,7 @@ export function TypingGame() {
   const [challengeUrgent, setChallengeUrgent] = useState(false);
 
   const inPlay = screen === "playing" || screen === "countdown";
-  const viewportFit = useVisualViewport(inPlay);
+  const viewportFit = useVisualViewport();
   const isPhone = viewportFit.isPhone;
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -229,15 +229,14 @@ export function TypingGame() {
     if (screen !== "countdown") {
       return;
     }
-    if (count < 0) {
-      startedAtRef.current = performance.now();
-      setScreen("playing");
-      return;
-    }
-    const timer = window.setTimeout(
-      () => setCount((value) => value - 1),
-      count === 0 ? 420 : 700
-    );
+    const timer = window.setTimeout(() => {
+      if (count <= 1) {
+        startedAtRef.current = performance.now();
+        setScreen("playing");
+        return;
+      }
+      setCount((value) => value - 1);
+    }, 700);
     return () => window.clearTimeout(timer);
   }, [screen, count]);
 
@@ -458,7 +457,7 @@ export function TypingGame() {
   }, [screen]);
 
   useEffect(() => {
-    if (!inPlay) {
+    if (screen !== "playing") {
       return;
     }
     const node = inputRef.current;
@@ -468,8 +467,12 @@ export function TypingGame() {
     if (document.activeElement === node) {
       return;
     }
+    const firstQuestion = (run?.caught ?? 0) === 0 && (run?.missed ?? 0) === 0;
+    if (isPhone && firstQuestion) {
+      return;
+    }
     node.focus({ preventScroll: true });
-  }, [inPlay, screen, run?.index]);
+  }, [isPhone, screen, run?.index, run?.caught, run?.missed]);
 
   useEffect(() => {
     if (!flash) {
@@ -497,6 +500,13 @@ export function TypingGame() {
     const timer = window.setTimeout(() => setMeaningToast(null), MEANING_TOAST_MS);
     return () => window.clearTimeout(timer);
   }, [meaningToast]);
+
+  useLayoutEffect(() => {
+    if (!inPlay) {
+      return;
+    }
+    window.scrollTo(0, 0);
+  }, [inPlay]);
 
   useEffect(() => {
     if (!isPhone || !inPlay) {
@@ -620,7 +630,7 @@ export function TypingGame() {
       status={run.status}
       challenge={isChallenge}
       compact={compactUi}
-      waiting={screen === "countdown"}
+      reveal={screen === "playing"}
       onChange={onTyped}
       onFocus={() => {
         if (isPhone) {
@@ -756,21 +766,23 @@ export function TypingGame() {
                   />
                 ) : null}
 
-                {screen === "countdown" ? (
-                  <div className="pointer-events-none absolute inset-x-0 top-[6%] z-40 flex justify-center px-3 sm:px-4">
-                    <div className="text-center">
-                      <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
-                        即將開始 · 無法暫停
-                      </p>
-                      <p
-                        className="font-display mt-2 text-[#ffe9a8]"
-                        style={{ fontSize: "var(--countdown-num, 4.5rem)" }}
-                      >
-                        {count > 0 ? count : "GO"}
-                      </p>
-                    </div>
+                <div
+                  className="countdown-overlay"
+                  data-active={screen === "countdown" ? "true" : "false"}
+                  aria-hidden={screen !== "countdown"}
+                >
+                  <div className="text-center">
+                    <p className="text-[11px] tracking-[0.4em] text-[#d7b56a] uppercase">
+                      即將開始 · 無法暫停
+                    </p>
+                    <p
+                      className="font-display mt-2 text-[#ffe9a8]"
+                      style={{ fontSize: "var(--countdown-num, 4.5rem)" }}
+                    >
+                      {count > 0 ? count : ""}
+                    </p>
                   </div>
-                ) : null}
+                </div>
                 {showOverlayPad ? (
                   <div className="trace-overlay pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
                     <div className="pointer-events-auto w-full max-w-full">

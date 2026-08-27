@@ -100,7 +100,19 @@ function snapshotFit(baseline: number): ViewportFit {
   };
 }
 
-export function useVisualViewport(active: boolean): ViewportFit {
+function sameFit(a: ViewportFit, b: ViewportFit) {
+  return (
+    a.height === b.height &&
+    a.offsetTop === b.offsetTop &&
+    a.offsetLeft === b.offsetLeft &&
+    a.width === b.width &&
+    a.keyboardOpen === b.keyboardOpen &&
+    a.isPhone === b.isPhone &&
+    a.density === b.density
+  );
+}
+
+export function useVisualViewport(): ViewportFit {
   const baselineRef = useRef(
     typeof window === "undefined"
       ? 0
@@ -112,7 +124,7 @@ export function useVisualViewport(active: boolean): ViewportFit {
   );
 
   useLayoutEffect(() => {
-    if (!active || typeof window === "undefined") {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -125,7 +137,7 @@ export function useVisualViewport(active: boolean): ViewportFit {
 
       const next = readViewport(baselineRef.current);
       baselineRef.current = next.nextBaseline;
-      setFit({
+      const snapshot: ViewportFit = {
         height: next.height,
         offsetTop: next.offsetTop,
         offsetLeft: next.offsetLeft,
@@ -133,7 +145,8 @@ export function useVisualViewport(active: boolean): ViewportFit {
         keyboardOpen: next.keyboardOpen,
         isPhone: next.isPhone,
         density: next.density,
-      });
+      };
+      setFit((prev) => (sameFit(prev, snapshot) ? prev : snapshot));
     };
 
     apply();
@@ -154,7 +167,7 @@ export function useVisualViewport(active: boolean): ViewportFit {
       pointer.removeEventListener("change", apply);
       hover.removeEventListener("change", apply);
     };
-  }, [active]);
+  }, []);
 
   return fit;
 }

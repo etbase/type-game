@@ -12,7 +12,7 @@ type TracePadProps = {
   compact?: boolean;
   rail?: boolean;
   disabled?: boolean;
-  waiting?: boolean;
+  reveal?: boolean;
   placeholder?: string;
   onChange: (value: string) => void;
   onFocus?: () => void;
@@ -43,6 +43,10 @@ function traceFontSize(length: number, rail: boolean, compact: boolean) {
   return "clamp(1.4rem, 4.1vh, 2.3rem)";
 }
 
+function stackMinEm(length: number) {
+  return length > 16 ? 2.8 : 1.5;
+}
+
 function displayChar(char: string | undefined) {
   if (!char || char === " ") {
     return "\u00a0";
@@ -60,8 +64,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
       compact = false,
       rail = false,
       disabled = false,
-      waiting = false,
-      placeholder,
+      reveal = false,
       onChange,
       onFocus,
     },
@@ -70,8 +73,11 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
     const match = matchTyped(typed, prompt);
     const slots = Math.max(prompt.length, typed.length, 1);
     const fontSize = traceFontSize(Math.max(prompt.length, typed.length), rail, compact);
-    const playing = status === "playing" && !disabled && !waiting;
+    const minHeight = `${stackMinEm(Math.max(prompt.length, typed.length, 8))}em`;
+    const playing = status === "playing" && !disabled && reveal;
     const hint = status === "missed" ? "Missed" : challenge ? "Type a coin" : "Trace this";
+    const showPrompt = reveal && !challenge;
+    const showChallengeInk = reveal && challenge && typed.length > 0;
 
     return (
       <div
@@ -87,58 +93,57 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
             ? "border-rose-400/40 bg-rose-950/35"
             : "border-[rgba(232,196,110,0.28)] bg-[rgba(12,16,28,0.86)]"
         )}
+        data-trace-reveal={reveal ? "true" : "false"}
       >
         <p className="trace-kicker mb-1.5 shrink-0 text-center text-[10px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
           {hint}
         </p>
-        <div className="relative min-h-0 flex-1">
+        <div className="trace-body relative min-h-0 flex-1" style={{ minHeight, height: minHeight }}>
           <div
             className="trace-stack"
-            style={{ fontSize }}
-            data-prompt={waiting ? "" : challenge ? typed : prompt}
+            style={{ fontSize, minHeight, height: minHeight }}
+            data-prompt={showPrompt ? prompt : showChallengeInk ? typed : ""}
           >
-            {waiting ? (
-              <span className="trace-blank" aria-hidden />
-            ) : challenge ? (
-              typed.length === 0 ? (
-                <span className="trace-placeholder">
-                  {placeholder ?? "打出金幣上的英文"}
-                </span>
-              ) : (
-                typed.split("").map((char, index) => (
+            <span className="trace-blank" aria-hidden />
+            {showPrompt ? (
+              <span className="trace-letters">
+                {Array.from({ length: slots }, (_, index) => {
+                  const reached = index < typed.length;
+                  const ok = index < match.correctLen;
+                  const caret = playing && index === typed.length;
+                  return (
+                    <span
+                      key={`cell-${index}`}
+                      className={cn("trace-cell", caret && "trace-caret")}
+                    >
+                      <span className="trace-ghost-ch" aria-hidden>
+                        {displayChar(prompt[index])}
+                      </span>
+                      <span
+                        className={cn(
+                          "trace-ink-ch",
+                          reached && ok && "trace-ok",
+                          reached && !ok && "trace-bad",
+                          !reached && "trace-empty"
+                        )}
+                        aria-hidden
+                      >
+                        {displayChar(reached ? typed[index] : prompt[index])}
+                      </span>
+                    </span>
+                  );
+                })}
+              </span>
+            ) : null}
+            {showChallengeInk ? (
+              <span className="trace-letters">
+                {typed.split("").map((char, index) => (
                   <span key={`ch-${index}`} className="trace-cell">
                     <span className="trace-ink-ch">{displayChar(char)}</span>
                   </span>
-                ))
-              )
-            ) : (
-              Array.from({ length: slots }, (_, index) => {
-                const reached = index < typed.length;
-                const ok = index < match.correctLen;
-                const caret = playing && index === typed.length;
-                return (
-                  <span
-                    key={`cell-${index}`}
-                    className={cn("trace-cell", caret && "trace-caret")}
-                  >
-                    <span className="trace-ghost-ch" aria-hidden>
-                      {displayChar(prompt[index])}
-                    </span>
-                    <span
-                      className={cn(
-                        "trace-ink-ch",
-                        reached && ok && "trace-ok",
-                        reached && !ok && "trace-bad",
-                        !reached && "trace-empty"
-                      )}
-                      aria-hidden
-                    >
-                      {displayChar(reached ? typed[index] : prompt[index])}
-                    </span>
-                  </span>
-                );
-              })
-            )}
+                ))}
+              </span>
+            ) : null}
           </div>
         </div>
         <input
@@ -161,7 +166,11 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
           className="trace-native-input"
         />
         <p id="trace-hint" className="sr-only">
-          {waiting ? "打字區" : challenge ? "打出畫面金幣上的英文" : `請描寫：${prompt}`}
+          {reveal
+            ? challenge
+              ? "打出畫面金幣上的英文"
+              : `請描寫：${prompt}`
+            : "打字區"}
         </p>
         {status === "missed" && !challenge ? (
           <p className="mt-1.5 shrink-0 text-center text-[11px] font-medium tracking-widest text-rose-300">
