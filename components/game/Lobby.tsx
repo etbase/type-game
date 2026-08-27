@@ -45,35 +45,38 @@ export function Lobby({ save, onStart }: LobbyProps) {
 
   return (
     <SiteFrame>
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-[clamp(1rem,4vh,3rem)] sm:gap-8">
-        <header className="relative overflow-hidden rounded-[2rem] border border-[rgba(232,196,110,0.28)] bg-[linear-gradient(165deg,rgba(42,32,16,0.78),rgba(10,12,20,0.94))] px-6 py-[clamp(1.5rem,5vh,3.5rem)] text-center shadow-[0_30px_80px_rgba(0,0,0,0.35)] sm:px-12">
-          <div className="pointer-events-none absolute -top-16 left-1/2 h-48 w-72 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,210,110,0.3),transparent_70%)]" />
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:gap-5 sm:py-5">
+        <header
+          data-lobby-hero
+          className="relative overflow-hidden rounded-[1.75rem] border border-[rgba(232,196,110,0.28)] bg-[linear-gradient(165deg,rgba(42,32,16,0.78),rgba(10,12,20,0.94))] px-5 py-4 text-center shadow-[0_24px_64px_rgba(0,0,0,0.32)] sm:px-10 sm:py-6"
+        >
+          <div className="pointer-events-none absolute -top-12 left-1/2 h-32 w-56 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,210,110,0.3),transparent_70%)]" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={asset(COIN_FRONT)}
             alt=""
-            className="mx-auto mb-4 h-20 w-20 object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.45)] sm:h-28 sm:w-28"
+            className="mx-auto mb-2 h-16 w-16 object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)] sm:h-[5.5rem] sm:w-[5.5rem]"
           />
           <p className="text-[11px] tracking-[0.48em] text-[#d7b56a] uppercase">
             Browser Arcade
           </p>
-          <h1 className="font-display mt-2 text-[clamp(2rem,6vw,3.6rem)] leading-[1.05] font-semibold text-[#f7e7c2]">
+          <h1 className="font-display mt-1.5 text-[clamp(1.65rem,4.2vw,2.7rem)] leading-[1.08] font-semibold text-[#f7e7c2]">
             英文打字金幣挑戰
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#d8c7a0] sm:text-base">
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-[#d8c7a0] sm:text-[0.95rem]">
             金幣從上方落下。打對英文就能接住金幣、累積 Combo 與 Credits。
           </p>
-          <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-[rgba(232,196,110,0.3)] bg-black/30 px-5 py-2">
+          <div className="mt-3 inline-flex items-center gap-3 rounded-full border border-[rgba(232,196,110,0.3)] bg-black/30 px-4 py-1.5">
             <span className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
               Total Credits
             </span>
-            <span className="font-mono text-xl font-semibold text-[#ffe9a8] tabular-nums">
+            <span className="font-mono text-lg font-semibold text-[#ffe9a8] tabular-nums sm:text-xl">
               {total.toLocaleString("en-US")}
             </span>
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2">
+        <section data-level-grid className="grid gap-4 md:grid-cols-2">
           {LEVELS.map((level) => {
             const score = save.levelScores[level.id];
             return (
