@@ -82,11 +82,11 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
             : "border-[rgba(232,196,110,0.28)] bg-[rgba(12,16,28,0.86)]"
         )}
       >
-        <p className="mb-1.5 shrink-0 text-center text-[10px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
+        <p className="trace-kicker mb-1.5 shrink-0 text-center text-[10px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
           {status === "missed" ? "Missed" : challenge ? "Type a coin" : "Trace this"}
         </p>
         <div className="relative min-h-0 flex-1">
-          <div className="trace-stack" style={{ fontSize }} data-prompt={challenge ? typed : prompt}>
+          <div className="trace-stack font-mono" style={{ fontSize }} data-prompt={challenge ? typed : prompt}>
             {challenge ? (
               typed.length === 0 ? (
                 <span className="trace-placeholder">{placeholder ?? "打出金幣上的英文"}</span>
@@ -155,7 +155,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
           </p>
         ) : null}
         {playing && !challenge && match.hasError ? (
-          <p className="mt-1.5 shrink-0 text-center text-[11px] text-rose-300/90">
+          <p className="trace-error-copy mt-1.5 shrink-0 text-center text-[11px] text-rose-300/90">
             打錯了，請修正後繼續
           </p>
         ) : null}

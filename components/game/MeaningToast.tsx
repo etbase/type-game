@@ -13,7 +13,12 @@ export function MeaningToast({ word, meaning, toastKey, inline = false }: Meanin
       className={
         inline
           ? "pointer-events-none relative z-[45] flex justify-center"
-          : "pointer-events-none absolute inset-x-3 bottom-[5.25rem] z-[45] flex justify-center sm:bottom-24"
+            : "pointer-events-none absolute inset-x-3 z-[45] flex justify-center"
+      }
+      style={
+        inline
+          ? undefined
+          : { bottom: "calc(var(--finish-gap, 2.25rem) + 0.35rem)" }
       }
     >
       <div

@@ -10,7 +10,6 @@ type FallingCoinProps = {
   missed: boolean;
   elapsedMs: number;
   compact?: boolean;
-  split?: boolean;
 };
 
 export function FallingCoin({
@@ -20,14 +19,13 @@ export function FallingCoin({
   missed,
   elapsedMs,
   compact = false,
-  split = false,
 }: FallingCoinProps) {
   const frameCount = COIN_SPIN_FRAMES.length;
   const rawIndex = Math.floor(Math.max(0, elapsedMs || 0) / 95);
   const frameIndex = ((rawIndex % frameCount) + frameCount) % frameCount;
   const src = caught
     ? asset(COIN_SPARKLE)
-    : spinning && !split && !compact
+    : spinning && !compact
       ? asset(COIN_SPIN_FRAMES[frameIndex] ?? COIN_FRONT)
       : asset(COIN_FRONT);
 
@@ -49,10 +47,7 @@ export function FallingCoin({
           alt="金幣"
           width={110}
           height={110}
-          className={cn(
-            "relative select-none object-contain drop-shadow-[0_18px_24px_rgba(0,0,0,0.55)]",
-            split ? "h-[52px] w-[52px]" : compact ? "h-[64px] w-[64px]" : "game-coin-stack"
-          )}
+          className="game-coin-stack relative select-none object-contain drop-shadow-[0_18px_24px_rgba(0,0,0,0.55)]"
           draggable={false}
         />
       </div>

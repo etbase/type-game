@@ -303,7 +303,8 @@
 }
 
 .trace-pad {
-  --trace-gap: 0.05em;
+  --trace-tracking: 0.08em;
+  --trace-slot: calc(1ch + var(--trace-tracking));
 }
 
 .trace-pad:focus-within {
@@ -311,31 +312,44 @@
   box-shadow: 0 0 0 2px rgba(234, 208, 138, 0.28);
 }
 
+.trace-stack,
+.trace-slot,
+.trace-ghost-ch,
+.trace-ink-ch,
+.trace-placeholder {
+  font-family: var(--font-jetbrains), "JetBrains Mono", ui-monospace, Menlo, Monaco, monospace;
+  font-size: inherit;
+  font-weight: 600;
+  font-style: normal;
+  font-kerning: none;
+  font-variant: normal;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0, "kern" 0;
+  font-optical-sizing: none;
+  font-synthesis: none;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-align: center;
+  text-rendering: geometricPrecision;
+}
+
 .trace-stack {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-content: center;
-  column-gap: var(--trace-gap);
-  row-gap: 0.16em;
+  column-gap: 0;
+  row-gap: 0.18em;
   width: 100%;
   min-height: 1.5em;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-weight: 600;
-  font-kerning: none;
-  font-variant-ligatures: none;
-  font-feature-settings: "liga" 0, "calt" 0;
-  letter-spacing: 0;
-  line-height: 1.35;
-  text-align: center;
 }
 
 .trace-slot {
   display: inline-grid;
-  grid-template-columns: 1ch;
+  grid-template-columns: var(--trace-slot);
   justify-items: stretch;
   align-items: stretch;
-  width: 1ch;
+  width: var(--trace-slot);
   position: relative;
 }
 
@@ -343,13 +357,7 @@
 .trace-ink-ch {
   grid-area: 1 / 1;
   display: block;
-  width: 1ch;
-  font: inherit;
-  font-kerning: none;
-  font-variant-ligatures: none;
-  letter-spacing: 0;
-  line-height: inherit;
-  text-align: center;
+  width: var(--trace-slot);
   white-space: pre;
 }
 
@@ -410,15 +418,14 @@
   touch-action: manipulation;
 }
 
-.gameplay-shell.split-play {
-  overflow: hidden;
-  --finish-gap: 2.85rem;
-}
-
 .gameplay-shell.stack-play {
   overflow-x: hidden;
   overflow-y: auto;
   --finish-gap: 2.25rem;
+}
+
+.gameplay-shell.stack-play[data-phone="true"] {
+  overflow: hidden;
 }
 
 .playfield-stage {
@@ -456,6 +463,7 @@
   --game-title: clamp(1.05rem, 2.6vh, 1.5rem);
   --playfield-min: clamp(10.5rem, 38vh, 22rem);
   --coin-size: clamp(3.15rem, 11vh, 6.875rem);
+  --labeled-coin-size: clamp(3rem, 9vh, 5.25rem);
   --input-h: clamp(2.75rem, 6.2vh, 3.5rem);
   --credits-num: clamp(1.2rem, 3.4vh, 1.875rem);
   --credits-icon: clamp(1.75rem, 5vh, 2.75rem);
@@ -476,6 +484,7 @@
   --game-gap: 0.4rem;
   --game-title: 1.05rem;
   --coin-size: clamp(2.75rem, 10vh, 4.25rem);
+  --labeled-coin-size: clamp(2.4rem, 8vh, 3.4rem);
   --input-h: 2.75rem;
   --credits-num: 1.2rem;
   --credits-icon: 1.75rem;
@@ -499,6 +508,57 @@
   }
 }
 
+@media (max-width: 560px) {
+  .stack-play {
+    --game-pad-x: 0.7rem;
+    --game-pad-y: 0.5rem;
+    --game-gap: 0.4rem;
+    --game-title: 1.12rem;
+    --playfield-min: clamp(10.5rem, 38dvh, 16rem);
+    --coin-size: clamp(2.35rem, 13vw, 3.35rem);
+    --labeled-coin-size: clamp(2.1rem, 11.5vw, 2.85rem);
+    --credits-num: 1.2rem;
+    --credits-icon: 1.7rem;
+    --prompt-pad-y: 0.65rem;
+    --prompt-pad-x: 0.8rem;
+    --finish-gap: 1.95rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .stack-play {
+    --coin-size: clamp(2.05rem, 12vw, 3rem);
+    --labeled-coin-size: clamp(1.85rem, 10.5vw, 2.5rem);
+  }
+}
+
+.stack-play[data-keyboard="open"] {
+  --playfield-min: 5.4rem;
+  --game-pad-y: 0.22rem;
+  --game-gap: 0.22rem;
+  --game-title: 0.95rem;
+  --coin-size: clamp(1.55rem, 10vw, 2.2rem);
+  --labeled-coin-size: clamp(1.4rem, 9vw, 1.95rem);
+  --credits-num: 1.05rem;
+  --credits-icon: 1.35rem;
+  --prompt-pad-y: 0.38rem;
+  --prompt-pad-x: 0.65rem;
+  --finish-gap: 1.45rem;
+  --countdown-num: 1.85rem;
+}
+
+.stack-play[data-keyboard="open"] .game-level-title,
+.stack-play[data-keyboard="open"] .trace-kicker,
+.stack-play[data-keyboard="open"] .trace-error-copy,
+.stack-play[data-density="tight"] .trace-kicker {
+  display: none;
+}
+
+.stack-play[data-keyboard="open"] .trace-overlay {
+  align-items: flex-end;
+  padding-bottom: 0.35rem;
+}
+
 .credits-bar-full {
   padding: clamp(0.55rem, 1.5vh, 0.75rem) clamp(0.75rem, 2vw, 1rem);
 }
@@ -518,8 +578,8 @@
 }
 
 .labeled-coin-stack {
-  height: clamp(3rem, 9vh, 5.25rem);
-  width: clamp(3rem, 9vh, 5.25rem);
+  height: var(--labeled-coin-size, 4.25rem);
+  width: var(--labeled-coin-size, 4.25rem);
 }
 
 .combo-live {

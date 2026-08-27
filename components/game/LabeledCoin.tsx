@@ -45,7 +45,7 @@ export function LabeledCoin({
       }}
     >
       {status === "shattered" ? (
-        <div className={cn("relative", split ? "h-[52px] w-[52px]" : "labeled-coin-stack")}>
+        <div className="relative labeled-coin-stack">
           {SHARDS.map((shard, index) => (
             <div
               key={index}
@@ -72,14 +72,7 @@ export function LabeledCoin({
             alt=""
             width={84}
             height={84}
-            className={cn(
-              "relative select-none drop-shadow-[0_12px_16px_rgba(0,0,0,0.5)]",
-              split
-                ? "h-[44px] w-[44px]"
-                : compact
-                  ? "h-[52px] w-[52px]"
-                  : "labeled-coin-stack"
-            )}
+            className="labeled-coin-stack relative select-none drop-shadow-[0_12px_16px_rgba(0,0,0,0.5)]"
             draggable={false}
           />
           <div

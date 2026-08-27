@@ -81,7 +81,7 @@ export function TypingGame() {
 
   const inPlay = screen === "playing" || screen === "countdown";
   const viewportFit = useVisualViewport(inPlay);
-  const splitLayout = viewportFit.isPhone && inPlay;
+  const isPhone = viewportFit.isPhone;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const durationRef = useRef(0);
@@ -485,7 +485,7 @@ export function TypingGame() {
   }, [meaningToast]);
 
   useEffect(() => {
-    if (!splitLayout) {
+    if (!isPhone || !inPlay) {
       return;
     }
     const html = document.documentElement;
@@ -508,7 +508,7 @@ export function TypingGame() {
       body.style.overscrollBehavior = prevBodyOverscroll;
       window.removeEventListener("scroll", pin);
     };
-  }, [splitLayout]);
+  }, [isPhone, inPlay]);
 
   const prompt = run?.prompts[run.index]?.word ?? "";
 
@@ -589,11 +589,13 @@ export function TypingGame() {
   const tight = density === "tight";
   const shellHeight = viewportFit.height || undefined;
   const narrow = viewportFit.width > 0 && viewportFit.width < 740;
+  const keyboardOpen = viewportFit.keyboardOpen;
+  const chromeTight = tight || keyboardOpen;
+  const compactUi = density !== "roomy" || isPhone;
   const pinViewport = () => {
     window.scrollTo(0, 0);
   };
-  const showOverlayPad = !splitLayout && !isChallenge && screen === "playing";
-  const showColumnPad = splitLayout || isChallenge;
+  const showOverlayPad = !isChallenge && screen === "playing";
 
   const tracePad = (
     <TracePad
@@ -602,13 +604,12 @@ export function TypingGame() {
       typed={run.typed}
       status={run.status}
       challenge={isChallenge}
-      compact={splitLayout || density !== "roomy"}
-      rail={splitLayout}
+      compact={compactUi}
       disabled={screen !== "playing" || run.status !== "playing"}
       placeholder={isChallenge ? "打出金幣上的英文" : undefined}
       onChange={onTyped}
       onFocus={() => {
-        if (viewportFit.isPhone) {
+        if (isPhone) {
           pinViewport();
           window.setTimeout(pinViewport, 50);
           window.setTimeout(pinViewport, 280);
@@ -619,109 +620,87 @@ export function TypingGame() {
 
   return (
     <div
-      className={cn(
-        "gameplay-shell bg-[#0a0d14]",
-        splitLayout ? "split-play" : "stack-play"
-      )}
-      data-gameplay-layout={splitLayout ? "split" : "stack"}
+      className="gameplay-shell stack-play bg-[#0a0d14]"
+      data-gameplay-layout="stack"
       data-density={density}
+      data-phone={isPhone ? "true" : "false"}
+      data-keyboard={keyboardOpen ? "open" : "closed"}
       style={{
         position: "fixed",
         top: viewportFit.height ? viewportFit.offsetTop : 0,
         left: viewportFit.height ? viewportFit.offsetLeft : 0,
         width: viewportFit.width ? viewportFit.width : "100%",
         height: shellHeight ? `${shellHeight}px` : "100dvh",
-        paddingBottom: splitLayout ? 0 : "env(safe-area-inset-bottom)",
+        paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
       <SiteFrame fill>
         <div
           className={cn(
-            "mx-auto flex h-full min-h-0 w-full",
-            splitLayout
-              ? "max-w-none flex-row gap-1.5 px-1.5 py-1.5 pb-[max(0.4rem,env(safe-area-inset-bottom))]"
-              : cn(
-                  "flex-col",
-                  isChallenge ? "max-w-4xl" : "max-w-3xl"
-                ),
+            "mx-auto flex h-full min-h-0 w-full flex-col",
+            isChallenge ? "max-w-4xl" : "max-w-3xl",
             shake && "screen-shake"
           )}
-          style={
-            splitLayout
-              ? undefined
-              : {
-                  paddingLeft: "var(--game-pad-x)",
-                  paddingRight: "var(--game-pad-x)",
-                  paddingTop: "var(--game-pad-y)",
-                  paddingBottom: "var(--game-pad-y)",
-                  gap: 0,
-                }
-          }
+          style={{
+            paddingLeft: "var(--game-pad-x)",
+            paddingRight: "var(--game-pad-x)",
+            paddingTop: "var(--game-pad-y)",
+            paddingBottom: "var(--game-pad-y)",
+            gap: 0,
+          }}
           onClick={() => inputRef.current?.focus({ preventScroll: true })}
         >
-          {!splitLayout ? (
-            <>
-              <div className="mb-[var(--game-gap)] flex shrink-0 flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
-                    Level {run.level.id} · {run.level.englishName}
-                  </p>
-                  <h1
-                    className="font-display text-[#f7e7c2]"
-                    style={{ fontSize: "var(--game-title)" }}
-                  >
-                    {run.level.name}
-                  </h1>
-                </div>
-                <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                  <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
-                    {isChallenge
-                      ? `${questionNo} / ${questionTotal}`
-                      : `第 ${questionNo} / ${questionTotal} 題`}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      abandonLevel();
-                    }}
-                  >
-                    放棄本關
-                  </Button>
-                </div>
-              </div>
-              <div className="mb-[var(--game-gap)] h-1.5 shrink-0 overflow-hidden rounded-full bg-black/40">
-                <div
-                  className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
-                  style={{ width: `${Math.min(100, progressPct)}%` }}
-                />
-              </div>
-            </>
-          ) : null}
-
-          <div
-            className={cn(
-              "relative min-h-0 overflow-hidden border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)]",
-              splitLayout
-                ? "coin-lane h-full w-[45%] min-w-0 shrink-0 rounded-xl"
-                : "min-h-[var(--playfield-min)] flex-1 rounded-[1.25rem] sm:rounded-[1.6rem]"
-            )}
-          >
+          <div className="mb-[var(--game-gap)] flex shrink-0 flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
+                Level {run.level.id} · {run.level.englishName}
+              </p>
+              <h1
+                className="font-display game-level-title text-[#f7e7c2]"
+                style={{ fontSize: "var(--game-title)" }}
+              >
+                {run.level.name}
+              </h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
+                {isChallenge
+                  ? `${questionNo} / ${questionTotal}`
+                  : `第 ${questionNo} / ${questionTotal} 題`}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  abandonLevel();
+                }}
+              >
+                放棄本關
+              </Button>
+            </div>
+          </div>
+          <div className="mb-[var(--game-gap)] h-1.5 shrink-0 overflow-hidden rounded-full bg-black/40">
             <div
-              className={cn(
-                "pointer-events-none absolute top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.14),transparent)]",
-                splitLayout ? "inset-x-0" : "inset-x-8"
-              )}
+              className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
+              style={{ width: `${Math.min(100, progressPct)}%` }}
             />
+          </div>
+          <div className="mb-[var(--game-gap)] shrink-0">
+            <CreditsBar
+              credits={run.credits}
+              combo={run.combo}
+              flash={flash}
+              lastGain={run.lastGain}
+              compact={chromeTight}
+            />
+          </div>
+
+          <div className="relative min-h-[var(--playfield-min)] flex-1 overflow-hidden rounded-[1.25rem] border border-[rgba(232,196,110,0.22)] bg-[linear-gradient(180deg,rgba(18,22,36,0.94),rgba(8,10,16,0.98))] shadow-[inset_0_0_80px_rgba(232,196,110,0.06)] sm:rounded-[1.6rem]">
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,214,120,0.14),transparent)]" />
             {!isChallenge ? (
-              <div
-                className={cn(
-                  "pointer-events-none lane-glow absolute inset-y-0 left-1/2 -translate-x-1/2",
-                  splitLayout ? "w-10" : "w-24 sm:w-36"
-                )}
-              />
+              <div className="pointer-events-none lane-glow absolute inset-y-0 left-1/2 w-24 -translate-x-1/2 sm:w-36" />
             ) : null}
 
             <div className="playfield-stage">
@@ -733,8 +712,7 @@ export function TypingGame() {
                     caught={run.status === "caught"}
                     missed={run.status === "missed"}
                     elapsedMs={run.elapsedMs}
-                    compact={density !== "roomy"}
-                    split={splitLayout}
+                    compact={compactUi}
                   />
                 ) : null}
 
@@ -744,9 +722,8 @@ export function TypingGame() {
                     prompts={run.prompts}
                     playing={run.status === "playing"}
                     typed={run.typed}
-                    compact={splitLayout || density !== "roomy"}
+                    compact={compactUi}
                     narrow={narrow}
-                    split={splitLayout}
                     onCatch={onChallengeCatch}
                     onMiss={onChallengeMiss}
                     onComboBreak={onChallengeComboBreak}
@@ -771,15 +748,12 @@ export function TypingGame() {
                         即將開始 · 無法暫停
                       </p>
                       <p
-                        className={cn(
-                          "font-display mt-2 text-[#ffe9a8]",
-                          splitLayout && "text-5xl"
-                        )}
-                        style={{ fontSize: splitLayout ? undefined : "var(--countdown-num, 4.5rem)" }}
+                        className="font-display mt-2 text-[#ffe9a8]"
+                        style={{ fontSize: "var(--countdown-num, 4.5rem)" }}
                       >
                         {count > 0 ? count : "GO"}
                       </p>
-                      {!tight ? (
+                      {!chromeTight ? (
                         <p className="mt-3 text-sm text-[#cbb892]">
                           {isChallenge
                             ? "倒數結束後，打出畫面上任一顆金幣的英文"
@@ -789,7 +763,7 @@ export function TypingGame() {
                     </div>
                   </div>
                 ) : showOverlayPad ? (
-                  <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
+                  <div className="trace-overlay pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
                     <div className="pointer-events-auto w-full max-w-full">
                       {tracePad}
                     </div>
@@ -797,7 +771,7 @@ export function TypingGame() {
                 ) : null}
               </div>
 
-              {!splitLayout && meaningToast ? (
+              {meaningToast ? (
                 <MeaningToast
                   word={meaningToast.word}
                   meaning={meaningToast.meaning}
@@ -806,18 +780,16 @@ export function TypingGame() {
               ) : null}
 
               <div className="finish-line" data-finish-line="true">
-                <div className={cn("relative w-full", splitLayout ? "px-1" : "px-6")}>
+                <div className="relative w-full px-4 sm:px-6">
                   <div
                     className={cn(
-                      "rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8,#c4922e)] shadow-[0_0_18px_rgba(240,212,138,0.7)]",
-                      splitLayout ? "h-1" : "h-1",
+                      "h-1 rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8,#c4922e)] shadow-[0_0_18px_rgba(240,212,138,0.7)]",
                       urgent && "finish-urgent bg-[linear-gradient(90deg,#ff8a6a,#ffd0a8,#ff8a6a)]"
                     )}
                   />
                   <div
                     className={cn(
-                      "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-[#ead08a]/50 bg-[#1a140c] text-[10px] text-[#ffe9a8] uppercase",
-                      splitLayout ? "px-1.5 py-0.5 tracking-[0.12em]" : "px-3 py-0.5 tracking-[0.32em]",
+                      "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-[#ead08a]/50 bg-[#1a140c] px-3 py-0.5 text-[10px] tracking-[0.32em] text-[#ffe9a8] uppercase",
                       urgent && "border-rose-300/60 text-rose-100"
                     )}
                   >
@@ -828,79 +800,20 @@ export function TypingGame() {
             </div>
           </div>
 
-          <div
-            className={cn(
-              splitLayout
-                ? "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-                : "mt-[var(--game-gap)] shrink-0 space-y-[var(--game-gap)]"
-            )}
-          >
-            {splitLayout ? (
-              <>
-                <div className="flex shrink-0 items-center justify-between gap-1">
-                  <p className="min-w-0 truncate text-[10px] tracking-[0.18em] text-[#d7b56a] uppercase">
-                    Lv.{run.level.id} · {questionNo}/{questionTotal}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 shrink-0 px-2 text-[11px] text-[#e7b0a4] hover:bg-rose-950/40 hover:text-rose-100"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      abandonLevel();
-                    }}
-                  >
-                    放棄
-                  </Button>
-                </div>
-                <div className="mb-1 h-1 shrink-0 overflow-hidden rounded-full bg-black/40">
-                  <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,#c4922e,#ffe9a8)] transition-[width] duration-300"
-                    style={{ width: `${Math.min(100, progressPct)}%` }}
-                  />
-                </div>
-                {showColumnPad ? tracePad : null}
-                <div className="mt-auto shrink-0 py-0.5">
-                  <CreditsBar
-                    credits={run.credits}
-                    combo={run.combo}
-                    flash={flash}
-                    lastGain={run.lastGain}
-                    stacked
-                  />
-                </div>
-              </>
-            ) : null}
+          {isChallenge ? (
+            <div
+              className="mt-[var(--game-gap)] shrink-0"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {tracePad}
+            </div>
+          ) : null}
 
-            {!splitLayout && isChallenge ? (
-              <div onClick={(event) => event.stopPropagation()}>
-                {tracePad}
-              </div>
-            ) : null}
-            {splitLayout && meaningToast ? (
-              <MeaningToast
-                word={meaningToast.word}
-                meaning={meaningToast.meaning}
-                toastKey={meaningToast.key}
-                inline
-              />
-            ) : null}
-
-            {!splitLayout ? (
-              <CreditsBar
-                credits={run.credits}
-                combo={run.combo}
-                flash={flash}
-                lastGain={run.lastGain}
-                compact={tight}
-              />
-            ) : null}
-            {!splitLayout && screen !== "playing" && !tight ? (
-              <p className="text-center text-[11px] tracking-wide text-[#9e8d6c]">
-                開始後不能暫停。中途離開會留下練習結果，但不計入最佳成績。
-              </p>
-            ) : null}
-          </div>
+          {screen !== "playing" && !chromeTight ? (
+            <p className="mt-[var(--game-gap)] text-center text-[11px] tracking-wide text-[#9e8d6c]">
+              開始後不能暫停。中途離開會留下練習結果，但不計入最佳成績。
+            </p>
+          ) : null}
         </div>
       </SiteFrame>
     </div>
