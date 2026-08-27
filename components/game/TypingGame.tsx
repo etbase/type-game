@@ -621,7 +621,6 @@ export function TypingGame() {
       challenge={isChallenge}
       compact={compactUi}
       waiting={screen === "countdown"}
-      placeholder="點擊這裡開始打字"
       onChange={onTyped}
       onFocus={() => {
         if (isPhone) {
@@ -817,12 +816,6 @@ export function TypingGame() {
             >
               {tracePad}
             </div>
-          ) : null}
-
-          {screen !== "playing" && !chromeTight ? (
-            <p className="mt-[var(--game-gap)] text-center text-[11px] tracking-wide text-[#9e8d6c]">
-              開始後不能暫停。中途離開會留下練習結果，但不計入最佳成績。
-            </p>
           ) : null}
         </div>
       </SiteFrame>

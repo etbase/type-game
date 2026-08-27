@@ -71,13 +71,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
     const slots = Math.max(prompt.length, typed.length, 1);
     const fontSize = traceFontSize(Math.max(prompt.length, typed.length), rail, compact);
     const playing = status === "playing" && !disabled && !waiting;
-    const hint = waiting
-      ? "點擊這裡開始打字"
-      : status === "missed"
-        ? "Missed"
-        : challenge
-          ? "Type a coin"
-          : "Trace this";
+    const hint = status === "missed" ? "Missed" : challenge ? "Type a coin" : "Trace this";
 
     return (
       <div
@@ -101,12 +95,14 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
           <div
             className="trace-stack"
             style={{ fontSize }}
-            data-prompt={challenge ? typed : prompt}
+            data-prompt={waiting ? "" : challenge ? typed : prompt}
           >
-            {challenge ? (
+            {waiting ? (
+              <span className="trace-blank" aria-hidden />
+            ) : challenge ? (
               typed.length === 0 ? (
                 <span className="trace-placeholder">
-                  {waiting ? "點擊這裡開始打字" : placeholder ?? "打出金幣上的英文"}
+                  {placeholder ?? "打出金幣上的英文"}
                 </span>
               ) : (
                 typed.split("").map((char, index) => (
@@ -165,7 +161,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
           className="trace-native-input"
         />
         <p id="trace-hint" className="sr-only">
-          {challenge ? "打出畫面金幣上的英文" : `請描寫：${prompt}`}
+          {waiting ? "打字區" : challenge ? "打出畫面金幣上的英文" : `請描寫：${prompt}`}
         </p>
         {status === "missed" && !challenge ? (
           <p className="mt-1.5 shrink-0 text-center text-[11px] font-medium tracking-widest text-rose-300">
