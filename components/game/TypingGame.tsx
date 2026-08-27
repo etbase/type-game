@@ -623,23 +623,32 @@ export function TypingGame() {
   const showBelowPad = isPhone || isChallenge;
 
   const tracePad = (
-    <TracePad
-      ref={inputRef}
-      prompt={isChallenge ? "" : prompt}
-      typed={run.typed}
-      status={run.status}
-      challenge={isChallenge}
-      compact={compactUi}
-      reveal={screen === "playing"}
-      onChange={onTyped}
-      onFocus={() => {
-        if (isPhone) {
-          pinViewport();
-          window.setTimeout(pinViewport, 50);
-          window.setTimeout(pinViewport, 280);
-        }
-      }}
-    />
+    <div className="trace-anchor relative w-full">
+      <TracePad
+        ref={inputRef}
+        prompt={isChallenge ? "" : prompt}
+        typed={run.typed}
+        status={run.status}
+        challenge={isChallenge}
+        compact={compactUi}
+        reveal={screen === "playing"}
+        onChange={onTyped}
+        onFocus={() => {
+          if (isPhone) {
+            pinViewport();
+            window.setTimeout(pinViewport, 50);
+            window.setTimeout(pinViewport, 280);
+          }
+        }}
+      />
+      {meaningToast ? (
+        <MeaningToast
+          word={meaningToast.word}
+          meaning={meaningToast.meaning}
+          toastKey={meaningToast.key}
+        />
+      ) : null}
+    </div>
   );
 
   return (
@@ -791,14 +800,6 @@ export function TypingGame() {
                   </div>
                 ) : null}
               </div>
-
-              {meaningToast ? (
-                <MeaningToast
-                  word={meaningToast.word}
-                  meaning={meaningToast.meaning}
-                  toastKey={meaningToast.key}
-                />
-              ) : null}
 
               <div className="finish-line" data-finish-line="true">
                 <div className="relative w-full px-4 sm:px-6">

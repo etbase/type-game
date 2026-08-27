@@ -283,6 +283,15 @@
   animation: meaning-toast 1.2s ease forwards;
 }
 
+.meaning-slot {
+  top: calc(100% + 1.25rem);
+}
+
+.gameplay-shell[data-phone="true"] .meaning-slot {
+  top: auto;
+  bottom: calc(100% + 1.25rem);
+}
+
 @keyframes meaning-toast {
   0% {
     opacity: 0;
