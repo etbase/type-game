@@ -75,10 +75,8 @@ function readViewport(baseline: number): ViewportFit & { nextBaseline: number } 
   };
 }
 
-export function useVisualViewport(active: boolean): ViewportFit {
-  const baselineRef = useRef(0);
-  const orientationRef = useRef("");
-  const [fit, setFit] = useState<ViewportFit>({
+function emptyFit(): ViewportFit {
+  return {
     height: 0,
     offsetTop: 0,
     offsetLeft: 0,
@@ -86,7 +84,32 @@ export function useVisualViewport(active: boolean): ViewportFit {
     keyboardOpen: false,
     isPhone: false,
     density: "roomy",
-  });
+  };
+}
+
+function snapshotFit(baseline: number): ViewportFit {
+  const next = readViewport(baseline);
+  return {
+    height: next.height,
+    offsetTop: next.offsetTop,
+    offsetLeft: next.offsetLeft,
+    width: next.width,
+    keyboardOpen: next.keyboardOpen,
+    isPhone: next.isPhone,
+    density: next.density,
+  };
+}
+
+export function useVisualViewport(active: boolean): ViewportFit {
+  const baselineRef = useRef(
+    typeof window === "undefined"
+      ? 0
+      : Math.round(window.visualViewport?.height ?? window.innerHeight)
+  );
+  const orientationRef = useRef("");
+  const [fit, setFit] = useState<ViewportFit>(() =>
+    typeof window === "undefined" ? emptyFit() : snapshotFit(0)
+  );
 
   useLayoutEffect(() => {
     if (!active || typeof window === "undefined") {

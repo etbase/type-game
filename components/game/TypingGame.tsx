@@ -595,7 +595,8 @@ export function TypingGame() {
   const pinViewport = () => {
     window.scrollTo(0, 0);
   };
-  const showOverlayPad = !isChallenge && screen === "playing";
+  const showOverlayPad = !isPhone && !isChallenge && screen === "playing";
+  const showBelowPad = isPhone || isChallenge;
 
   const tracePad = (
     <TracePad
@@ -641,6 +642,7 @@ export function TypingGame() {
             isChallenge ? "max-w-4xl" : "max-w-3xl",
             shake && "screen-shake"
           )}
+          data-play-stack="column"
           style={{
             paddingLeft: "var(--game-pad-x)",
             paddingRight: "var(--game-pad-x)",
@@ -800,7 +802,7 @@ export function TypingGame() {
             </div>
           </div>
 
-          {isChallenge ? (
+          {showBelowPad ? (
             <div
               className="mt-[var(--game-gap)] shrink-0"
               onClick={(event) => event.stopPropagation()}

@@ -302,18 +302,13 @@
   }
 }
 
-.trace-pad {
-  --trace-tracking: 0.08em;
-  --trace-slot: calc(1ch + var(--trace-tracking));
-}
-
 .trace-pad:focus-within {
   border-color: rgba(234, 208, 138, 0.72);
   box-shadow: 0 0 0 2px rgba(234, 208, 138, 0.28);
 }
 
 .trace-stack,
-.trace-slot,
+.trace-cell,
 .trace-ghost-ch,
 .trace-ink-ch,
 .trace-placeholder {
@@ -328,37 +323,37 @@
   font-optical-sizing: none;
   font-synthesis: none;
   letter-spacing: 0;
-  line-height: 1.35;
+  line-height: 1.4;
   text-align: center;
-  text-rendering: geometricPrecision;
+  text-rendering: auto;
 }
 
 .trace-stack {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-content: center;
-  column-gap: 0;
-  row-gap: 0.18em;
+  display: block;
   width: 100%;
   min-height: 1.5em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-.trace-slot {
+.trace-cell {
   display: inline-grid;
-  grid-template-columns: var(--trace-slot);
-  justify-items: stretch;
-  align-items: stretch;
-  width: var(--trace-slot);
-  position: relative;
+  justify-items: center;
+  align-items: center;
+  padding-inline: 0.08em;
+  vertical-align: baseline;
 }
 
 .trace-ghost-ch,
 .trace-ink-ch {
   grid-area: 1 / 1;
-  display: block;
-  width: var(--trace-slot);
+  width: max-content;
   white-space: pre;
+}
+
+.trace-ink-ch {
+  color: #f6ead2;
 }
 
 .trace-ghost-ch {
@@ -514,7 +509,7 @@
     --game-pad-y: 0.5rem;
     --game-gap: 0.4rem;
     --game-title: 1.12rem;
-    --playfield-min: clamp(10.5rem, 38dvh, 16rem);
+    --playfield-min: clamp(8.25rem, 30dvh, 13.5rem);
     --coin-size: clamp(2.35rem, 13vw, 3.35rem);
     --labeled-coin-size: clamp(2.1rem, 11.5vw, 2.85rem);
     --credits-num: 1.2rem;

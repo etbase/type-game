@@ -42,8 +42,11 @@ function traceFontSize(length: number, rail: boolean, compact: boolean) {
   return "clamp(1.4rem, 4.1vh, 2.3rem)";
 }
 
-function displayChar(char: string) {
-  return char === " " || char === "" ? "\u00a0" : char;
+function displayChar(char: string | undefined) {
+  if (!char || char === " ") {
+    return "\u00a0";
+  }
+  return char;
 }
 
 export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
@@ -72,7 +75,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
         className={cn(
           "trace-pad relative",
           rail
-            ? "flex min-h-[5.5rem] w-full flex-1 flex-col overflow-hidden rounded-2xl border px-2 py-2"
+            ? "flex min-h-[4.75rem] w-full flex-1 flex-col overflow-hidden rounded-2xl border px-2 py-2"
             : cn(
                 "mx-auto w-[min(100%,42rem)] rounded-3xl border shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md",
                 compact ? "px-3 py-3" : "px-[var(--prompt-pad-x,2rem)] py-[var(--prompt-pad-y,1.4rem)]"
@@ -86,14 +89,18 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
           {status === "missed" ? "Missed" : challenge ? "Type a coin" : "Trace this"}
         </p>
         <div className="relative min-h-0 flex-1">
-          <div className="trace-stack font-mono" style={{ fontSize }} data-prompt={challenge ? typed : prompt}>
+          <div
+            className="trace-stack"
+            style={{ fontSize }}
+            data-prompt={challenge ? typed : prompt}
+          >
             {challenge ? (
               typed.length === 0 ? (
                 <span className="trace-placeholder">{placeholder ?? "打出金幣上的英文"}</span>
               ) : (
                 typed.split("").map((char, index) => (
-                  <span key={`ch-${index}`} className="trace-slot">
-                    <span className="trace-ink-ch text-[#f6ead2]">{displayChar(char)}</span>
+                  <span key={`ch-${index}`} className="trace-cell">
+                    <span className="trace-ink-ch">{displayChar(char)}</span>
                   </span>
                 ))
               )
@@ -104,11 +111,11 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
                 const caret = playing && index === typed.length;
                 return (
                   <span
-                    key={`slot-${index}`}
-                    className={cn("trace-slot", caret && "trace-caret")}
+                    key={`cell-${index}`}
+                    className={cn("trace-cell", caret && "trace-caret")}
                   >
                     <span className="trace-ghost-ch" aria-hidden>
-                      {displayChar(prompt[index] ?? " ")}
+                      {displayChar(prompt[index])}
                     </span>
                     <span
                       className={cn(
@@ -119,7 +126,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
                       )}
                       aria-hidden
                     >
-                      {displayChar(reached ? typed[index] : " ")}
+                      {displayChar(reached ? typed[index] : prompt[index])}
                     </span>
                   </span>
                 );
