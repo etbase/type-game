@@ -113,7 +113,9 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
             ) : (
               Array.from({ length: slots }, (_, index) => {
                 const reached = index < typed.length;
-                const ok = index < match.correctLen;
+                const ok =
+                  reached &&
+                  typed[index].toLowerCase() === (prompt[index] ?? "").toLowerCase();
                 const caret = live && index === typed.length;
                 return (
                   <span
