@@ -5,7 +5,7 @@ import { ChallengeField } from "@/components/game/ChallengeField";
 import { FallingCoin } from "@/components/game/FallingCoin";
 import { Lobby } from "@/components/game/Lobby";
 import { MeaningToast } from "@/components/game/MeaningToast";
-import { PromptCard } from "@/components/game/PromptCard";
+import { TracePad } from "@/components/game/TracePad";
 import { ResultScreen } from "@/components/game/ResultScreen";
 import { SiteFrame } from "@/components/game/SiteFrame";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ import { isExactAnswer, matchTyped, scoreCatch } from "@/lib/typing";
 import { logPrompt, type RoundEntry } from "@/lib/round-log";
 import { cn } from "@/lib/utils";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Screen = "lobby" | "countdown" | "playing" | "complete";
 type QuestionStatus = "playing" | "caught" | "missed";
@@ -511,7 +511,6 @@ export function TypingGame() {
   }, [splitLayout]);
 
   const prompt = run?.prompts[run.index]?.word ?? "";
-  const match = useMemo(() => matchTyped(run?.typed ?? "", prompt), [run?.typed, prompt]);
 
   const onTyped = (value: string) => {
     if (!run || screen !== "playing" || run.status !== "playing") {
@@ -590,10 +589,33 @@ export function TypingGame() {
   const tight = density === "tight";
   const shellHeight = viewportFit.height || undefined;
   const narrow = viewportFit.width > 0 && viewportFit.width < 740;
-  const inputError = !isChallenge && match.hasError;
   const pinViewport = () => {
     window.scrollTo(0, 0);
   };
+  const showOverlayPad = !splitLayout && !isChallenge && screen === "playing";
+  const showColumnPad = splitLayout || isChallenge;
+
+  const tracePad = (
+    <TracePad
+      ref={inputRef}
+      prompt={isChallenge ? "" : prompt}
+      typed={run.typed}
+      status={run.status}
+      challenge={isChallenge}
+      compact={splitLayout || density !== "roomy"}
+      rail={splitLayout}
+      disabled={screen !== "playing" || run.status !== "playing"}
+      placeholder={isChallenge ? "打出金幣上的英文" : undefined}
+      onChange={onTyped}
+      onFocus={() => {
+        if (viewportFit.isPhone) {
+          pinViewport();
+          window.setTimeout(pinViewport, 50);
+          window.setTimeout(pinViewport, 280);
+        }
+      }}
+    />
+  );
 
   return (
     <div
@@ -761,21 +783,18 @@ export function TypingGame() {
                         <p className="mt-3 text-sm text-[#cbb892]">
                           {isChallenge
                             ? "倒數結束後，打出畫面上任一顆金幣的英文"
-                            : "倒數結束後，直接打出中央的英文"}
+                            : "倒數結束後，在淡字上直接描寫英文"}
                         </p>
                       ) : null}
                     </div>
                   </div>
-                ) : splitLayout || isChallenge ? null : (
-                  <div className="absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
-                    <PromptCard
-                      prompt={prompt}
-                      typed={run.typed}
-                      status={run.status}
-                      compact={density !== "roomy"}
-                    />
+                ) : showOverlayPad ? (
+                  <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-3 sm:px-4">
+                    <div className="pointer-events-auto w-full max-w-full">
+                      {tracePad}
+                    </div>
                   </div>
-                )}
+                ) : null}
               </div>
 
               {!splitLayout && meaningToast ? (
@@ -840,7 +859,8 @@ export function TypingGame() {
                     style={{ width: `${Math.min(100, progressPct)}%` }}
                   />
                 </div>
-                <div className="shrink-0 py-0.5">
+                {showColumnPad ? tracePad : null}
+                <div className="mt-auto shrink-0 py-0.5">
                   <CreditsBar
                     credits={run.credits}
                     combo={run.combo}
@@ -849,68 +869,14 @@ export function TypingGame() {
                     stacked
                   />
                 </div>
-                {isChallenge ? (
-                  <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-[rgba(232,196,110,0.22)] bg-[rgba(12,16,28,0.72)] px-2 py-2 text-center">
-                    <p className="mb-1.5 text-[10px] tracking-[0.38em] text-[#d7b56a]/80 uppercase">
-                      Type this
-                    </p>
-                    <p className="prompt-rail-word text-[0.95rem] leading-snug font-semibold text-[#f6ead2]">
-                      打出金幣上的英文
-                    </p>
-                  </div>
-                ) : (
-                  <PromptCard
-                    prompt={prompt}
-                    typed={run.typed}
-                    status={run.status}
-                    rail
-                  />
-                )}
               </>
             ) : null}
 
-            <form
-              autoComplete="off"
-              className={splitLayout ? "mt-auto shrink-0" : undefined}
-              onSubmit={(event) => event.preventDefault()}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <input
-                ref={inputRef}
-                value={run.typed}
-                type="text"
-                name="type-answer"
-                inputMode="text"
-                lang="en"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                disabled={screen !== "playing" || run.status !== "playing"}
-                onChange={(event) => onTyped(event.target.value)}
-                onPaste={(event) => event.preventDefault()}
-                onFocus={() => {
-                  if (viewportFit.isPhone) {
-                    pinViewport();
-                    window.setTimeout(pinViewport, 50);
-                    window.setTimeout(pinViewport, 280);
-                  }
-                }}
-                placeholder={
-                  screen === "playing"
-                    ? isChallenge
-                      ? "打出任一顆金幣上的英文…"
-                      : "在終點線前打完英文…"
-                    : "倒數結束後開始輸入"
-                }
-                aria-label="英文輸入"
-                className={cn(
-                  "game-type-input w-full rounded-2xl border border-[rgba(232,196,110,0.35)] bg-black/40 px-4 font-mono text-[#f7e7c2] outline-none transition-colors placeholder:text-[#8b7a5c] focus-visible:border-[#ead08a] focus-visible:ring-2 focus-visible:ring-[#ead08a]/30 disabled:opacity-60",
-                  splitLayout ? "h-10" : "h-[var(--input-h)]",
-                  inputError && "border-rose-400/60"
-                )}
-              />
-            </form>
+            {!splitLayout && isChallenge ? (
+              <div onClick={(event) => event.stopPropagation()}>
+                {tracePad}
+              </div>
+            ) : null}
             {splitLayout && meaningToast ? (
               <MeaningToast
                 word={meaningToast.word}

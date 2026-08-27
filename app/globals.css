@@ -302,9 +302,106 @@
   }
 }
 
-.game-type-input {
+.trace-pad {
+  --trace-gap: 0.05em;
+}
+
+.trace-pad:focus-within {
+  border-color: rgba(234, 208, 138, 0.72);
+  box-shadow: 0 0 0 2px rgba(234, 208, 138, 0.28);
+}
+
+.trace-stack {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  column-gap: var(--trace-gap);
+  row-gap: 0.16em;
+  width: 100%;
+  min-height: 1.5em;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 600;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.trace-slot {
+  display: inline-grid;
+  grid-template-columns: 1ch;
+  justify-items: stretch;
+  align-items: stretch;
+  width: 1ch;
+  position: relative;
+}
+
+.trace-ghost-ch,
+.trace-ink-ch {
+  grid-area: 1 / 1;
+  display: block;
+  width: 1ch;
+  font: inherit;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  letter-spacing: 0;
+  line-height: inherit;
+  text-align: center;
+  white-space: pre;
+}
+
+.trace-ghost-ch {
+  color: rgba(236, 226, 208, 0.34);
+}
+
+.trace-ok {
+  color: #6ee7b7;
+}
+
+.trace-bad {
+  color: #fb7185;
+}
+
+.trace-empty {
+  color: transparent;
+}
+
+.trace-placeholder {
+  color: rgba(236, 226, 208, 0.38);
+  font: inherit;
+}
+
+.trace-caret {
+  box-shadow: inset 0 -2px 0 rgba(255, 233, 168, 0.95);
+  border-radius: 1px;
+  animation: trace-caret 1s step-end infinite;
+}
+
+@keyframes trace-caret {
+  50% {
+    box-shadow: inset 0 -2px 0 transparent;
+  }
+}
+
+.trace-native-input {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0.01;
   font-size: 16px;
   line-height: 1.3;
+  color: transparent;
+  caret-color: transparent;
+  background: transparent;
+  outline: none;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -480,6 +577,7 @@
   .meaning-toast,
   .combo-warm,
   .combo-hot,
+  .trace-caret,
   .new-record {
     animation: none;
   }
