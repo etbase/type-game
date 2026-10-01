@@ -11,7 +11,7 @@ import {
   type LiveCoin,
 } from "@/lib/challenge";
 import type { LevelDef, PromptItem } from "@/lib/levels";
-import { isExactAnswer, normalizeAnswer } from "@/lib/typing";
+import { isExactAnswer, normalizeAnswer, bestPrefixTarget } from "@/lib/typing";
 import { useEffect, useRef, useState } from "react";
 
 type ChallengeFieldProps = {
@@ -28,6 +28,7 @@ type ChallengeFieldProps = {
   onUrgent: (urgent: boolean) => void;
   onComplete: () => void;
   onConsumeTyped: () => void;
+  onTraceTarget?: (word: string) => void;
 };
 
 export function ChallengeField({
@@ -44,6 +45,7 @@ export function ChallengeField({
   onUrgent,
   onComplete,
   onConsumeTyped,
+  onTraceTarget,
 }: ChallengeFieldProps) {
   const [coins, setCoins] = useState<LiveCoin[]>([]);
   const [now, setNow] = useState(0);
@@ -57,10 +59,11 @@ export function ChallengeField({
   const urgentRef = useRef(false);
   const comboBrokeRef = useRef(false);
   const typedRef = useRef(typed);
-  const callbacksRef = useRef({ onCatch, onMiss, onComboBreak, onUrgent, onComplete, onConsumeTyped });
+  const traceTargetRef = useRef("");
+  const callbacksRef = useRef({ onCatch, onMiss, onComboBreak, onUrgent, onComplete, onConsumeTyped, onTraceTarget });
 
   typedRef.current = typed;
-  callbacksRef.current = { onCatch, onMiss, onComboBreak, onUrgent, onComplete, onConsumeTyped };
+  callbacksRef.current = { onCatch, onMiss, onComboBreak, onUrgent, onComplete, onConsumeTyped, onTraceTarget };
 
   useEffect(() => {
     coinsRef.current = [];
@@ -71,6 +74,8 @@ export function ChallengeField({
     completedRef.current = false;
     urgentRef.current = false;
     comboBrokeRef.current = false;
+    traceTargetRef.current = "";
+    callbacksRef.current.onTraceTarget?.("");
     setCoins([]);
   }, [prompts, split]);
 
@@ -121,6 +126,14 @@ export function ChallengeField({
       const prefixHit = hint.length > 0 && fallingNow.some((coin) =>
         normalizeAnswer(coin.prompt.word).startsWith(hint)
       );
+      const traceTarget = bestPrefixTarget(
+        typedValue,
+        fallingNow.map((coin) => coin.prompt.word)
+      );
+      if (traceTarget !== traceTargetRef.current) {
+        traceTargetRef.current = traceTarget;
+        callbacksRef.current.onTraceTarget?.(traceTarget);
+      }
       if (hint.length > 0 && fallingNow.length > 0 && !prefixHit) {
         if (!comboBrokeRef.current) {
           comboBrokeRef.current = true;

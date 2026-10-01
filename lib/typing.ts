@@ -14,6 +14,23 @@ export function isExactAnswer(typed: string, target: string) {
   return a.length > 0 && a === b;
 }
 
+export function bestPrefixTarget(typed: string, targets: string[]) {
+  const hint = normalizeAnswer(typed);
+  if (!hint) {
+    return "";
+  }
+  let best = "";
+  for (const word of targets) {
+    if (!normalizeAnswer(word).startsWith(hint)) {
+      continue;
+    }
+    if (!best || word.length < best.length) {
+      best = word;
+    }
+  }
+  return best;
+}
+
 export function matchTyped(typed: string, target: string): TypeMatch {
   const al = typed.toLowerCase();
   const bl = target.toLowerCase();

@@ -8,12 +8,10 @@ type TracePadProps = {
   prompt: string;
   typed: string;
   status: "idle" | "playing" | "caught" | "missed";
-  challenge?: boolean;
   compact?: boolean;
   rail?: boolean;
   disabled?: boolean;
   reveal?: boolean;
-  placeholder?: string;
   onChange: (value: string) => void;
   onFocus?: () => void;
 };
@@ -56,12 +54,10 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
       prompt,
       typed,
       status,
-      challenge = false,
       compact = false,
       rail = false,
       disabled = false,
       reveal = false,
-      placeholder,
       onChange,
       onFocus,
     },
@@ -71,7 +67,7 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
     const slots = Math.max(prompt.length, typed.length, 1);
     const fontSize = traceFontSize(Math.max(prompt.length, typed.length), rail, compact);
     const live = status !== "missed" && !disabled;
-    const hint = status === "missed" ? "Missed" : challenge ? "Type a coin" : "Trace this";
+    const hint = status === "missed" ? "Missed" : "Trace this";
 
     return (
       <div
@@ -93,53 +89,35 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
           {hint}
         </p>
         <div className="relative min-h-0 flex-1">
-          <div
-            className="trace-stack"
-            style={{ fontSize }}
-            data-prompt={reveal ? (challenge ? typed : prompt) : ""}
-          >
-            {challenge ? (
-              typed.length === 0 ? (
-                <span className="trace-placeholder">
-                  {placeholder ?? "打出金幣上的英文"}
-                </span>
-              ) : (
-                typed.split("").map((char, index) => (
-                  <span key={`ch-${index}`} className="trace-cell">
-                    <span className="trace-ink-ch">{displayChar(char)}</span>
+          <div className="trace-stack" style={{ fontSize }} data-prompt={reveal ? prompt : ""}>
+            {Array.from({ length: slots }, (_, index) => {
+              const reached = index < typed.length;
+              const ok =
+                reached &&
+                typed[index].toLowerCase() === (prompt[index] ?? "").toLowerCase();
+              const caret = live && index === typed.length;
+              return (
+                <span
+                  key={`cell-${index}`}
+                  className={cn("trace-cell", caret && "trace-caret")}
+                >
+                  <span className="trace-ghost-ch" aria-hidden>
+                    {displayChar(prompt[index])}
                   </span>
-                ))
-              )
-            ) : (
-              Array.from({ length: slots }, (_, index) => {
-                const reached = index < typed.length;
-                const ok =
-                  reached &&
-                  typed[index].toLowerCase() === (prompt[index] ?? "").toLowerCase();
-                const caret = live && index === typed.length;
-                return (
                   <span
-                    key={`cell-${index}`}
-                    className={cn("trace-cell", caret && "trace-caret")}
+                    className={cn(
+                      "trace-ink-ch",
+                      reached && ok && "trace-ok",
+                      reached && !ok && "trace-bad",
+                      !reached && "trace-empty"
+                    )}
+                    aria-hidden
                   >
-                    <span className="trace-ghost-ch" aria-hidden>
-                      {displayChar(prompt[index])}
-                    </span>
-                    <span
-                      className={cn(
-                        "trace-ink-ch",
-                        reached && ok && "trace-ok",
-                        reached && !ok && "trace-bad",
-                        !reached && "trace-empty"
-                      )}
-                      aria-hidden
-                    >
-                      {displayChar(reached ? typed[index] : prompt[index])}
-                    </span>
+                    {displayChar(reached ? typed[index] : prompt[index])}
                   </span>
-                );
-              })
-            )}
+                </span>
+              );
+            })}
           </div>
         </div>
         <input
@@ -162,18 +140,14 @@ export const TracePad = forwardRef<HTMLInputElement, TracePadProps>(
           className="trace-native-input"
         />
         <p id="trace-hint" className="sr-only">
-          {reveal
-            ? challenge
-              ? "打出畫面金幣上的英文"
-              : `請描寫：${prompt}`
-            : "打字區"}
+          {reveal ? (prompt ? `請描寫：${prompt}` : "打出畫面金幣上的英文") : "打字區"}
         </p>
-        {status === "missed" && !challenge ? (
+        {status === "missed" ? (
           <p className="mt-1.5 shrink-0 text-center text-[11px] font-medium tracking-widest text-rose-300">
             金幣碰到終點線
           </p>
         ) : null}
-        {reveal && live && !challenge && match.hasError ? (
+        {reveal && live && match.hasError ? (
           <p className="trace-error-copy mt-1.5 shrink-0 text-center text-[11px] text-rose-300/90">
             打錯了，請修正後繼續
           </p>

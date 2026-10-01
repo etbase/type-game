@@ -78,6 +78,7 @@ export function TypingGame() {
     key: number;
   } | null>(null);
   const [challengeUrgent, setChallengeUrgent] = useState(false);
+  const [challengeTrace, setChallengeTrace] = useState("");
 
   const inPlay = screen === "playing" || screen === "countdown";
   const viewportFit = useVisualViewport();
@@ -208,6 +209,7 @@ export function TypingGame() {
     setNewRecord(false);
     markRun(levelId);
     setChallengeUrgent(false);
+    setChallengeTrace("");
   }, []);
 
   const abandonLevel = useCallback(() => {
@@ -600,7 +602,7 @@ export function TypingGame() {
 
   const isChallenge = run.level.mode === "challenge";
   const questionNo = isChallenge
-    ? Math.min(run.caught + run.missed, run.prompts.length)
+    ? Math.min(Math.max(run.caught + run.missed, 1), run.prompts.length)
     : Math.min(run.index + 1, run.prompts.length);
   const questionTotal = run.prompts.length;
   const progressPct = isChallenge
@@ -619,17 +621,16 @@ export function TypingGame() {
   const pinViewport = () => {
     window.scrollTo(0, 0);
   };
-  const showOverlayPad = !isPhone && !isChallenge;
-  const showBelowPad = isPhone || isChallenge;
+  const showOverlayPad = !isPhone;
+  const showBelowPad = isPhone;
 
   const tracePad = (
     <div className="trace-anchor relative w-full">
       <TracePad
         ref={inputRef}
-        prompt={isChallenge ? "" : prompt}
+        prompt={isChallenge ? challengeTrace : prompt}
         typed={run.typed}
         status={run.status}
-        challenge={isChallenge}
         compact={compactUi}
         reveal={screen === "playing"}
         onChange={onTyped}
@@ -670,8 +671,7 @@ export function TypingGame() {
       <SiteFrame fill>
         <div
           className={cn(
-            "mx-auto flex h-full min-h-0 w-full flex-col",
-            isChallenge ? "max-w-4xl" : "max-w-3xl",
+            "mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col",
             shake && "screen-shake"
           )}
           data-play-stack="column"
@@ -698,9 +698,7 @@ export function TypingGame() {
             </div>
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <p className="font-mono text-sm text-[#d8c7a0] tabular-nums">
-                {isChallenge
-                  ? `${questionNo} / ${questionTotal}`
-                  : `第 ${questionNo} / ${questionTotal} 題`}
+                第 {questionNo} / {questionTotal} 題
               </p>
               <Button
                 variant="ghost"
@@ -763,6 +761,7 @@ export function TypingGame() {
                     onComboBreak={onChallengeComboBreak}
                     onUrgent={setChallengeUrgent}
                     onComplete={onChallengeComplete}
+                    onTraceTarget={setChallengeTrace}
                     onConsumeTyped={() => {
                       const current = runRef.current;
                       if (!current) {

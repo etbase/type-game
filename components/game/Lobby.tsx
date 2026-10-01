@@ -1,8 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SiteFrame } from "@/components/game/SiteFrame";
 import { asset, COIN_FRONT } from "@/lib/asset";
 import { LEVELS, type LevelId } from "@/lib/levels";
@@ -38,6 +36,9 @@ const HOW_TO = [
   },
 ];
 
+const startButtonClass =
+  "h-10 min-w-28 rounded-full border border-[#ead08a]/40 bg-[linear-gradient(180deg,#f0d48a,#c4922e)] px-5 text-[#2a1b07] hover:bg-[linear-gradient(180deg,#ffe6a8,#d7a33c)]";
+
 export function Lobby({ save, onStart }: LobbyProps) {
   const total = totalCredits(save);
   const [pending, setPending] = useState<LevelId | null>(null);
@@ -48,73 +49,58 @@ export function Lobby({ save, onStart }: LobbyProps) {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:gap-5 sm:py-5">
         <header
           data-lobby-hero
-          className="relative overflow-hidden rounded-[1.75rem] border border-[rgba(232,196,110,0.28)] bg-[linear-gradient(165deg,rgba(42,32,16,0.78),rgba(10,12,20,0.94))] px-5 py-4 text-center shadow-[0_24px_64px_rgba(0,0,0,0.32)] sm:px-10 sm:py-6"
+          className="flex flex-col gap-3 rounded-2xl border border-[rgba(232,196,110,0.28)] bg-[linear-gradient(165deg,rgba(42,32,16,0.78),rgba(10,12,20,0.94))] px-4 py-3 shadow-[0_16px_40px_rgba(0,0,0,0.28)] sm:flex-row sm:items-center sm:justify-between sm:px-5"
         >
-          <div className="pointer-events-none absolute -top-12 left-1/2 h-32 w-56 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,210,110,0.3),transparent_70%)]" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={asset(COIN_FRONT)}
-            alt=""
-            className="mx-auto mb-2 h-16 w-16 object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)] sm:h-[5.5rem] sm:w-[5.5rem]"
-          />
-          <p className="text-[11px] tracking-[0.48em] text-[#d7b56a] uppercase">
-            Browser Arcade
-          </p>
-          <h1 className="font-display mt-1.5 text-[clamp(1.65rem,4.2vw,2.7rem)] leading-[1.08] font-semibold text-[#f7e7c2]">
-            英文打字金幣挑戰
-          </h1>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-[#d8c7a0] sm:text-[0.95rem]">
-            金幣從上方落下。打對英文就能接住金幣、累積 Combo 與 Credits。
-          </p>
-          <div className="mt-3 inline-flex items-center gap-3 rounded-full border border-[rgba(232,196,110,0.3)] bg-black/30 px-4 py-1.5">
-            <span className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
+          <div className="flex min-w-0 items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={asset(COIN_FRONT)}
+              alt=""
+              className="h-9 w-9 shrink-0 object-contain drop-shadow-[0_6px_12px_rgba(0,0,0,0.45)] sm:h-10 sm:w-10"
+            />
+            <h1 className="font-display text-lg leading-tight font-semibold text-[#f7e7c2] sm:text-xl">
+              英文打字金幣挑戰
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 self-start rounded-full border border-[rgba(232,196,110,0.3)] bg-black/30 px-3 py-1 sm:self-auto">
+            <span className="text-[10px] tracking-[0.28em] text-[#d7b56a] uppercase">
               Total Credits
             </span>
-            <span className="font-mono text-lg font-semibold text-[#ffe9a8] tabular-nums sm:text-xl">
+            <span className="font-mono text-base font-semibold text-[#ffe9a8] tabular-nums">
               {total.toLocaleString("en-US")}
             </span>
           </div>
         </header>
 
-        <section data-level-grid className="grid gap-4 md:grid-cols-2">
+        <section data-level-grid className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           {LEVELS.map((level) => {
             const score = save.levelScores[level.id];
             return (
-              <Card
+              <article
                 key={level.id}
-                className="border-[rgba(232,196,110,0.18)] bg-[rgba(16,18,28,0.78)] text-[#f4ead4] ring-0"
+                data-level-card
+                className="flex min-h-[11.75rem] flex-col rounded-2xl border border-[rgba(232,196,110,0.18)] bg-[rgba(16,18,28,0.78)] p-4 text-[#f4ead4] sm:min-h-[12.5rem] sm:p-5"
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
-                        Level {level.id} · {level.englishName}
-                      </p>
-                      <CardTitle className="font-display mt-1 text-2xl text-[#f7e7c2]">
-                        {level.name}
-                      </CardTitle>
-                      <CardDescription className="mt-1 text-[#cbb892]">
-                        {level.kind} · {level.questions} 題 · {level.pace}
-                      </CardDescription>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="border-[rgba(232,196,110,0.35)] text-[#e7c56a]"
-                    >
-                      {score.toLocaleString("en-US")} cr
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex items-center justify-end">
-                  <Button
-                    size="lg"
-                    onClick={() => setPending(level.id)}
-                    className="h-10 min-w-28 rounded-full border border-[#ead08a]/40 bg-[linear-gradient(180deg,#f0d48a,#c4922e)] px-5 text-[#2a1b07] hover:bg-[linear-gradient(180deg,#ffe6a8,#d7a33c)]"
-                  >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[10px] tracking-[0.32em] text-[#d7b56a] uppercase">
+                    Level {level.id} · {level.englishName}
+                  </p>
+                  <span className="shrink-0 rounded-full border border-[rgba(232,196,110,0.35)] px-2 py-0.5 font-mono text-xs text-[#e7c56a] tabular-nums">
+                    {score.toLocaleString("en-US")} cr
+                  </span>
+                </div>
+                <h2 className="font-display mt-2 text-2xl leading-tight text-[#f7e7c2]">
+                  {level.name}
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-[#cbb892]">
+                  {level.kind} · {level.questions} 題 · {level.pace}
+                </p>
+                <div className="mt-auto flex justify-end pt-4">
+                  <Button size="lg" onClick={() => setPending(level.id)} className={startButtonClass}>
                     {score > 0 ? "再打一次" : "開始本關"}
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </article>
             );
           })}
         </section>
